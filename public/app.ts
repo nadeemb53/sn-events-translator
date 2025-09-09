@@ -411,15 +411,14 @@ class TranslatorApp {
     // Clear interim translation when final arrives
     this.currentInterimTranslation = null;
     
-    // Replace any interim translation with the final one, or add new
-    const existingIndex = this.translations.findIndex(t => 
-      t.originalText.includes(translation.originalText) || 
-      translation.originalText.includes(t.originalText)
-    );
+    // Find existing translation by ID (session-based grouping)
+    const existingIndex = this.translations.findIndex(t => t.id === translation.id);
     
     if (existingIndex >= 0) {
+      // Update existing translation in the same box
       this.translations[existingIndex] = translation;
     } else {
+      // Add new translation
       this.translations.unshift(translation);
     }
     

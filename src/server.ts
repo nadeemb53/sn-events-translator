@@ -141,6 +141,9 @@ async function handleAuthentication(ws: WebSocket, password: string) {
 // Store the last interim translation to avoid duplicates
 let lastInterimTranslation: string = '';
 let interimTranslationTimeout: NodeJS.Timeout | null = null;
+let currentSessionText: string = ''; // Accumulate text in the same session
+let currentSessionId: string | null = null;
+let sessionTimeout: NodeJS.Timeout | null = null;
 
 async function handleTranslation(ws: WebSocket, text: string, isFinal: boolean = true) {
   const connection = connections.get(ws);
@@ -154,11 +157,30 @@ async function handleTranslation(ws: WebSocket, text: string, isFinal: boolean =
   }
 
   try {
+    // Start or continue a session
+    if (!currentSessionId) {
+      currentSessionId = `session-${Date.now()}`;
+      currentSessionText = '';
+    }
+    
+    // Reset session timeout (3 seconds of silence ends the session)
+    if (sessionTimeout) {
+      clearTimeout(sessionTimeout);
+    }
+    sessionTimeout = setTimeout(() => {
+      currentSessionId = null;
+      currentSessionText = '';
+    }, 3000);
+
     // Handle interim translations (live preview)
     if (!isFinal) {
+      // Accumulate text in current session
+      const newSessionText = currentSessionText ? `${currentSessionText} ${text}` : text;
+      currentSessionText = newSessionText;
+      
       // Avoid translating the same interim text repeatedly
-      if (text === lastInterimTranslation) return;
-      lastInterimTranslation = text;
+      if (newSessionText === lastInterimTranslation) return;
+      lastInterimTranslation = newSessionText;
       
       // Clear any pending interim translation
       if (interimTranslationTimeout) {
@@ -168,10 +190,10 @@ async function handleTranslation(ws: WebSocket, text: string, isFinal: boolean =
       // Set a timeout to translate interim text if no final comes quickly
       interimTranslationTimeout = setTimeout(async () => {
         try {
-          const result = await translationService.translateText(text);
+          const result = await translationService.translateText(newSessionText);
           
           const translationMessage: TranslationMessage = {
-            id: `interim-${Date.now()}`,
+            id: currentSessionId || `interim-${Date.now()}`,
             originalText: result.originalText,
             translatedText: result.translatedText,
             sourceLanguage: result.sourceLanguage,
@@ -198,12 +220,15 @@ async function handleTranslation(ws: WebSocket, text: string, isFinal: boolean =
       interimTranslationTimeout = null;
     }
     
+    // Accumulate final text in session
+    const finalSessionText = currentSessionText ? `${currentSessionText} ${text}` : text;
+    currentSessionText = finalSessionText;
     lastInterimTranslation = ''; // Reset interim tracking
     
-    const result = await translationService.translateText(text);
+    const result = await translationService.translateText(finalSessionText);
     
     const translationMessage: TranslationMessage = {
-      id: Date.now().toString(),
+      id: currentSessionId || Date.now().toString(),
       originalText: result.originalText,
       translatedText: result.translatedText,
       sourceLanguage: result.sourceLanguage,

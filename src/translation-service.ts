@@ -33,14 +33,22 @@ export class TranslationService {
         messages: [
           {
             role: 'system',
-            content: `You are a professional translator. Translate the following ${sourceLangName} text to ${targetLanguage}. Only respond with the translation, no explanations or additional text.`,
+            content: `You are a professional translator specializing in blockchain, cryptocurrency, and Web3 technology. You have expertise in translating technical terms related to:
+- DeFi (Decentralized Finance), DEX, liquidity pools, yield farming, staking
+- NFTs, smart contracts, dApps, protocols, governance tokens
+- Layer 1/Layer 2 networks, sidechains, rollups, bridges
+- Wallets, private keys, seed phrases, gas fees, mining, validators
+- DAO, tokenomics, airdrops, ICO, IDO, TGE
+- Status Network, Ethereum, Bitcoin, and other blockchain ecosystems
+
+Translate the following ${sourceLangName} text to ${targetLanguage}. Preserve technical accuracy and use appropriate terminology. Only respond with the translation, no explanations or additional text.`,
           },
           {
             role: 'user',
             content: text,
           },
         ],
-        temperature: 0.3,
+        temperature: 0.2,
         max_tokens: 1000,
       });
 
