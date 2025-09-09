@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status Network Translator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌐 Status Network Translator</h1>
+            <p>Real-time Korean ↔ English Translation</p>
+            <div class="status-bar">
+                <span id="connection-status" class="status disconnected">Disconnected</span>
+                <span id="subscriber-count" class="count">0 subscribers</span>
+            </div>
+        </header>
+
+        <main>
+            <!-- Mode Selection -->
+            <div class="mode-selection">
+                <button id="subscriber-mode-btn" class="mode-btn active">
+                    👥 Subscriber Mode
+                </button>
+                <button id="publisher-mode-btn" class="mode-btn">
+                    🎤 Publisher Mode
+                </button>
+            </div>
+
+            <!-- Publisher Authentication -->
+            <div id="auth-section" class="auth-section hidden">
+                <h3>Publisher Authentication</h3>
+                <div class="auth-form">
+                    <input type="password" id="publisher-password" placeholder="Enter publisher password">
+                    <button id="auth-btn">Authenticate</button>
+                </div>
+                <div id="auth-status" class="auth-status"></div>
+            </div>
+
+            <!-- Publisher Controls -->
+            <div id="publisher-controls" class="publisher-controls hidden">
+                <h3>🎤 Publisher Mode</h3>
+                <div class="mic-controls">
+                    <button id="start-recording" class="record-btn">
+                        🎤 Start Recording
+                    </button>
+                    <button id="stop-recording" class="record-btn" disabled>
+                        ⏹️ Stop Recording
+                    </button>
+                </div>
+                <div class="speech-status">
+                    <div id="recording-status" class="recording-status">Ready to record</div>
+                    <div id="speech-text" class="speech-text"></div>
+                </div>
+            </div>
+
+            <!-- Translation Display -->
+            <div id="translation-section" class="translation-section">
+                <h3>📝 Live Translations</h3>
+                <div id="translations-container" class="translations-container">
+                    <div class="no-translations">
+                        Waiting for translations...
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Built for Status Network Events in Korea</p>
+        </footer>
+    </div>
+
+    <script type="module" src="app.ts"></script>
+</body>
+</html>

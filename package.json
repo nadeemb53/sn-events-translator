@@ -1,0 +1,37 @@
+{
+  "name": "status-translator",
+  "version": "1.0.0",
+  "description": "Real-time Korean-English translator for Status network events",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "concurrently \"tsc -w\" \"nodemon dist/server.js\"",
+    "dev:client": "vite",
+    "build:client": "vite build",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.14.2",
+    "openai": "^4.20.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/ws": "^8.5.8",
+    "@types/cors": "^2.8.17",
+    "@types/node": "^20.8.7",
+    "@types/jest": "^29.5.5",
+    "typescript": "^5.2.2",
+    "nodemon": "^3.0.1",
+    "concurrently": "^8.2.2",
+    "vite": "^4.5.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "ws": "^8.14.2"
+  }
+}
