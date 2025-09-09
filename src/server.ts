@@ -73,7 +73,7 @@ wss.on('connection', (ws) => {
           break;
           
         case 'translation':
-          await handleTranslation(ws, data.data);
+          await handleTranslation(ws, data.data, data.isFinal);
           break;
           
         default:
@@ -138,7 +138,11 @@ async function handleAuthentication(ws: WebSocket, password: string) {
   }
 }
 
-async function handleTranslation(ws: WebSocket, text: string) {
+// Store the last interim translation to avoid duplicates
+let lastInterimTranslation: string = '';
+let interimTranslationTimeout: NodeJS.Timeout | null = null;
+
+async function handleTranslation(ws: WebSocket, text: string, isFinal: boolean = true) {
   const connection = connections.get(ws);
   
   if (!connection?.isPublisher) {
@@ -150,6 +154,52 @@ async function handleTranslation(ws: WebSocket, text: string) {
   }
 
   try {
+    // Handle interim translations (live preview)
+    if (!isFinal) {
+      // Avoid translating the same interim text repeatedly
+      if (text === lastInterimTranslation) return;
+      lastInterimTranslation = text;
+      
+      // Clear any pending interim translation
+      if (interimTranslationTimeout) {
+        clearTimeout(interimTranslationTimeout);
+      }
+      
+      // Set a timeout to translate interim text if no final comes quickly
+      interimTranslationTimeout = setTimeout(async () => {
+        try {
+          const result = await translationService.translateText(text);
+          
+          const translationMessage: TranslationMessage = {
+            id: `interim-${Date.now()}`,
+            originalText: result.originalText,
+            translatedText: result.translatedText,
+            sourceLanguage: result.sourceLanguage,
+            targetLanguage: result.targetLanguage,
+            timestamp: Date.now(),
+            isFinal: false,
+          };
+
+          broadcastToSubscribers({
+            type: 'translation',
+            translation: translationMessage,
+          });
+        } catch (error) {
+          console.error('Interim translation error:', error);
+        }
+      }, 500); // Wait 500ms before translating interim text
+      
+      return;
+    }
+    
+    // Handle final translations
+    if (interimTranslationTimeout) {
+      clearTimeout(interimTranslationTimeout);
+      interimTranslationTimeout = null;
+    }
+    
+    lastInterimTranslation = ''; // Reset interim tracking
+    
     const result = await translationService.translateText(text);
     
     const translationMessage: TranslationMessage = {
@@ -159,6 +209,7 @@ async function handleTranslation(ws: WebSocket, text: string) {
       sourceLanguage: result.sourceLanguage,
       targetLanguage: result.targetLanguage,
       timestamp: Date.now(),
+      isFinal: true,
     };
 
     // Broadcast to all subscribers
@@ -167,7 +218,7 @@ async function handleTranslation(ws: WebSocket, text: string) {
       translation: translationMessage,
     });
 
-    console.log(`Translation: ${result.sourceLanguage} -> ${result.targetLanguage}`);
+    console.log(`Final translation: ${result.sourceLanguage} -> ${result.targetLanguage}`);
   } catch (error) {
     console.error('Translation error:', error);
     ws.send(JSON.stringify({

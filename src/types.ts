@@ -5,6 +5,7 @@ export interface TranslationMessage {
   sourceLanguage: 'ko' | 'en';
   targetLanguage: 'ko' | 'en';
   timestamp: number;
+  isFinal?: boolean;
 }
 
 export interface WebSocketMessage {
@@ -13,6 +14,7 @@ export interface WebSocketMessage {
   translation?: TranslationMessage;
   password?: string;
   count?: number;
+  isFinal?: boolean;
 }
 
 export interface AuthenticatedConnection {
