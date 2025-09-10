@@ -102,17 +102,28 @@ Translate the following ${sourceLangName} text to ${targetLanguage}. Keep Status
     sourceLanguage: 'ko' | 'en';
     targetLanguage: 'ko' | 'en';
   }> {
-    const sourceLanguage = await this.detectLanguage(text);
+    // Fix common Whisper misrecognitions before translation
+    let correctedText = text
+      .replace(/\bstudies\b/gi, 'Status')
+      .replace(/\bstatistical\b/gi, 'Status') 
+      .replace(/\bIFTTT+\b/gi, 'IFT')
+      .replace(/\bIFD\b/gi, 'IFT')
+      .replace(/\bthank you\b/gi, '') // Remove thank you artifacts
+      .trim();
+    
+    const sourceLanguage = await this.detectLanguage(correctedText);
     const targetLanguage = sourceLanguage === 'ko' ? 'en' : 'ko';
     
-    console.log(`Translating: "${text}" from ${sourceLanguage} to ${targetLanguage}`);
+    console.log(`Original: "${text}"`);
+    console.log(`Corrected: "${correctedText}"`);
+    console.log(`Translating from ${sourceLanguage} to ${targetLanguage}`);
     
-    const translatedText = await this.translate(text, sourceLanguage);
+    const translatedText = await this.translate(correctedText, sourceLanguage);
 
     console.log(`Result: "${translatedText}"`);
 
     return {
-      originalText: text,
+      originalText: correctedText, // Use corrected text as original
       translatedText,
       sourceLanguage,
       targetLanguage,

@@ -465,14 +465,15 @@ class TranslatorApp {
       const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
       this.audioChunks = [];
       
-      // Skip very short recordings
-      if (audioBlob.size < 1000) return;
+      // Skip very short recordings (avoid picking up button clicks/artifacts)
+      if (audioBlob.size < 5000) return;
       
       this.recordingStatus.textContent = '🔄 Transcribing with Whisper...';
       
       const formData = new FormData();
       formData.append('file', audioBlob, 'audio.webm');
       formData.append('model', 'whisper-1');
+      formData.append('prompt', 'This is a presentation about Status Network, Logos, Codex, Waku, Nimbus, and IFT (Institute of Free Technology). Status is a decentralized messaging platform. Logos is a network. Codex is storage. IFT encompasses all these organizations and projects.');
       
       const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
         method: 'POST',
