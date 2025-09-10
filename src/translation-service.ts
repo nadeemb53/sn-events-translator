@@ -101,7 +101,7 @@ TEXT TO TRANSLATE:`,
             content: text,
           },
         ],
-        temperature: 0.05,
+        temperature: 0.1,
         max_tokens: 500,
         stop: ["I'm", "I am", "How can", "Please", "Just provide"],
       });
