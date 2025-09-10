@@ -1,166 +1,147 @@
-# 🌐 Status Network Translator
+# Status Translator
 
-Real-time Korean ↔ English translation app for Status network events in Korea. One person publishes translations via microphone, everyone else subscribes and sees the translations in real-time.
+Real-time Korean ↔ English translation for Status network events. Features a publisher/subscriber model where one person speaks and everyone else receives live translations.
 
-## ✨ Features
+## Features
 
-- 🎤 **Publisher Mode**: Password-protected microphone input with automatic language detection
-- 👥 **Subscriber Mode**: Real-time translation display for unlimited users
-- 🔄 **Auto Translation**: Korean ↔ English using OpenAI API
-- 🌍 **Global Access**: Works worldwide, no local network required
-- 📱 **Responsive Design**: Works on desktop and mobile
-- ⚡ **Real-time**: WebSocket-based instant updates
+- **Publisher Mode**: Password-protected microphone input with OpenAI Whisper transcription
+- **Subscriber Mode**: Live translation display for unlimited users  
+- **Dual Language Display**: Korean and English text in separate, scrollable containers
+- **Automatic Language Detection**: Whisper API handles Korean/English detection
+- **Web3-Aware Translation**: Enhanced prompts for blockchain and cryptocurrency terminology
+- **Global Access**: WebSocket-based real-time communication
+- **Mobile Responsive**: Optimized layout for phones and tablets
 
-## 🚀 Quick Start
+## Quick Start
 
-### 1. Setup Environment
+### 1. Environment Setup
 
 ```bash
-# Copy environment template
 cp env.example .env
-
-# Edit .env with your settings
-nano .env
 ```
 
-Add your OpenAI API key and set a publisher password:
+Configure your `.env` file:
 ```
 OPENAI_API_KEY=sk-your-openai-api-key-here
 PUBLISHER_PASSWORD=status2024
 PORT=3000
 ```
 
-### 2. Install & Run
+### 2. Installation
 
 ```bash
-# Install dependencies
 npm install
-
-# Build the project
 npm run build
-
-# Start the server
 npm start
 ```
 
-For development:
-```bash
-# Development mode with auto-reload
-npm run dev
-```
+Visit `http://localhost:3000`
 
-### 3. Access the App
+### 3. Usage
 
-- Open `http://localhost:3000` in your browser
-- **Subscribers**: Just visit the URL, translations appear automatically
-- **Publisher**: Click "Publisher Mode", enter password (`status2024` by default), start recording
-
-## 🌍 Global Deployment
-
-### Option 1: Railway (Recommended)
-1. Fork this repository
-2. Connect to Railway
-3. Add environment variables in Railway dashboard
-4. Deploy automatically
-
-### Option 2: Render
-1. Connect repository to Render
-2. Add environment variables
-3. Deploy as Web Service
-
-### Option 3: Vercel (with external WebSocket)
-1. Deploy frontend to Vercel
-2. Deploy backend to Railway/Render
-3. Update WebSocket URL in frontend
-
-## 🎯 How to Use at Events
-
-### For the Event Host (Publisher):
-1. Open the app and click "Publisher Mode"
-2. Enter the publisher password
+**Publisher (Event Host):**
+1. Click "Publisher Mode" 
+2. Enter password
 3. Click "Start Recording"
-4. Speak in Korean or English - it auto-detects and translates
-5. Click "Stop Recording" when done
+4. Speak in Korean or English
 
-### For Attendees (Subscribers):
-1. Just open the app URL
-2. Translations appear automatically in real-time
-3. No authentication required
+**Subscribers (Attendees):**
+1. Open the app URL
+2. View live translations automatically
 
-## 🔧 Configuration
-
-### Environment Variables
-- `OPENAI_API_KEY`: Your OpenAI API key (required)
-- `PUBLISHER_PASSWORD`: Password for publisher mode (default: "status2024")
-- `PORT`: Server port (default: 3000)
-
-### Supported Languages
-- Korean (ko) ↔ English (en)
-- Auto-detection based on text content
-
-## 🛠 Technical Details
+## Technical Implementation
 
 ### Architecture
-- **Frontend**: TypeScript + HTML5 + CSS3
-- **Backend**: Node.js + Express + WebSocket
-- **Translation**: OpenAI GPT-3.5-turbo
-- **Speech Recognition**: Browser Web Speech API
-- **Real-time**: WebSocket connections
+- **Frontend**: TypeScript, Vite build system
+- **Backend**: Node.js, Express, WebSocket server
+- **Speech Recognition**: OpenAI Whisper API (3-second audio chunks)
+- **Translation**: OpenAI GPT-3.5-turbo with specialized Web3 prompts
+- **UI**: Dual-panel layout with Korean (red) and English (blue) containers
 
-### Browser Requirements
-- Modern browser with Web Speech API support
-- Chrome/Safari recommended for speech recognition
-- HTTPS required in production for microphone access
+### Audio Processing
+- MediaRecorder captures high-quality audio (16kHz, mono)
+- 3-second chunks sent to Whisper for near real-time processing
+- Automatic language detection and transcription
+- Superior accuracy compared to browser speech recognition
 
-## 📱 Mobile Support
+### Translation Features
+- Specialized prompts for DeFi, NFT, blockchain terminology
+- Session-based text accumulation (reduces fragmentation)
+- Real-time interim and final translation states
+- Auto-scrolling text containers
 
-The app is fully responsive and works on mobile devices. For best speech recognition results:
-- Use Chrome on Android
-- Use Safari on iOS
-- Ensure microphone permissions are granted
+## Deployment
 
-## 🔒 Security
-
-- Publisher mode requires password authentication
-- No user data is stored permanently
-- All communication is real-time only
-- HTTPS recommended for production
-
-## 🚨 Troubleshooting
-
-### Common Issues:
-
-1. **Microphone not working**:
-   - Check browser permissions
-   - Use HTTPS in production
-   - Try Chrome/Safari browsers
-
-2. **WebSocket connection fails**:
-   - Check firewall settings
-   - Ensure PORT is not blocked
-   - Verify server is running
-
-3. **Translation errors**:
-   - Check OpenAI API key
-   - Verify API credits/quota
-   - Check internet connection
-
-### Development:
+### Frontend (Vercel)
 ```bash
-# Check logs
-npm run dev
-
-# Build only
-npm run build
-
-# Check TypeScript
-npx tsc --noEmit
+npm run build:client
+npx vercel --prod
 ```
 
-## 📄 License
+### Backend (Railway/Render)
+Deploy the Node.js server with WebSocket support and environment variables.
 
-MIT License - feel free to use for Status network events!
+## Browser Requirements
+
+- **Audio Recording**: Modern browsers with MediaRecorder API
+- **HTTPS**: Required in production for microphone access
+- **WebSocket**: Standard support (all modern browsers)
+- **Recommended**: Chrome, Safari, Firefox
+
+## Cost Considerations
+
+- **Whisper API**: ~$0.006 per minute of audio
+- **GPT Translation**: Standard OpenAI pricing
+- **Suitable for**: Professional events where accuracy matters
+
+## Configuration
+
+### Environment Variables
+- `OPENAI_API_KEY`: Required for Whisper and translation
+- `PUBLISHER_PASSWORD`: Access control for publisher mode
+- `PORT`: Server port (default: 3000)
+
+### Audio Settings
+- Sample rate: 16kHz
+- Channels: Mono
+- Format: WebM/Opus
+- Chunk size: 3 seconds
+- Features: Echo cancellation, noise suppression
+
+## Troubleshooting
+
+**Microphone Issues:**
+- Grant browser permissions
+- Use HTTPS in production
+- Check audio input device
+
+**API Errors:**
+- Verify OpenAI API key and credits
+- Check network connectivity
+- Monitor browser console for errors
+
+**WebSocket Connection:**
+- Ensure backend is running and accessible
+- Check firewall/proxy settings
+- Verify correct WebSocket URL
+
+## Development
+
+```bash
+# Development mode
+npm run dev
+
+# Type checking
+npx tsc --noEmit
+
+# Tests
+npm test
+```
+
+## License
+
+MIT
 
 ---
 
-Built with ❤️ for the Status community in Korea 🇰🇷
+*Built for Status Network events in Korea*
