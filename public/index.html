@@ -3,19 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Status</title>
+    <title>Status Network - Universal Translator</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Animated background elements -->
+    <div class="background-container">
+        <div class="stars"></div>
+        <div class="planets">
+            <img src="planet.png" alt="Planet" class="floating-planet planet-1">
+            <img src="planet.png" alt="Planet" class="floating-planet planet-2">
+        </div>
+        <div class="mascots-bg">
+            <img src="dragon 1.png" alt="Dragon" class="floating-mascot dragon-mascot">
+            <img src="waifu 1.png" alt="Waifu" class="floating-mascot waifu-mascot">
+        </div>
+    </div>
+
     <div class="container">
         <header>
             <div class="logo-container">
                 <img src="Logo card white.png" alt="Status Network" class="status-logo">
+                <div class="logo-glow"></div>
             </div>
-            <p>Real-time Korean ↔ English Translation</p>
+            <div class="header-content">
+                <p class="subtitle">Real-time Korean ↔ English Translation</p>
+                <p class="tagline">Connecting Communities Worldwide</p>
+            </div>
             <div class="status-bar">
-                <span id="connection-status" class="status disconnected">Disconnected</span>
-                <span id="subscriber-count" class="count">0 subscribers</span>
+                <div class="status-item">
+                    <span id="connection-status" class="status disconnected">Disconnected</span>
+                </div>
+                <div class="status-item">
+                    <span id="subscriber-count" class="count">0 subscribers</span>
+                </div>
             </div>
         </header>
 
@@ -23,68 +47,111 @@
             <!-- Mode Selection -->
             <div class="mode-selection">
                 <button id="subscriber-mode-btn" class="mode-btn active">
-                    👥 Subscriber Mode
+                    <img src="waifu 1.png" alt="" class="btn-mascot">
+                    <span class="btn-text">Subscriber Mode</span>
+                    <div class="btn-glow"></div>
                 </button>
                 <button id="publisher-mode-btn" class="mode-btn">
-                    🎤 Publisher Mode
+                    <img src="dragon 1.png" alt="" class="btn-mascot">
+                    <span class="btn-text">Publisher Mode</span>
+                    <div class="btn-glow"></div>
                 </button>
             </div>
 
             <!-- Publisher Authentication -->
             <div id="auth-section" class="auth-section hidden">
-                <h3>Publisher Authentication</h3>
+                <div class="section-header">
+                    <img src="dragon_key 1.png" alt="Dragon Key" class="section-mascot">
+                    <h3>Publisher Authentication</h3>
+                </div>
                 <div class="auth-form">
-                    <input type="password" id="publisher-password" placeholder="Enter publisher password">
-                    <button id="auth-btn">Authenticate</button>
+                    <div class="input-container">
+                        <input type="password" id="publisher-password" placeholder="Enter publisher password">
+                        <div class="input-glow"></div>
+                    </div>
+                    <button id="auth-btn" class="cosmic-btn">
+                        <span>Authenticate</span>
+                        <div class="btn-particles"></div>
+                    </button>
                 </div>
                 <div id="auth-status" class="auth-status"></div>
             </div>
 
             <!-- Publisher Controls -->
             <div id="publisher-controls" class="publisher-controls hidden">
-                <h3>🎤 Publisher Mode</h3>
+                <div class="section-header">
+                    <img src="dragon 1.png" alt="Dragon" class="section-mascot">
+                    <h3>Publisher Mode</h3>
+                </div>
                 <div class="mic-controls">
-                    <button id="start-recording" class="record-btn">
-                        🎤 Start Recording
+                    <button id="start-recording" class="record-btn cosmic-btn">
+                        <img src="dragon 1.png" alt="" class="btn-mascot-small">
+                        <span class="btn-text">Start Recording</span>
+                        <div class="btn-particles"></div>
                     </button>
-                    <button id="stop-recording" class="record-btn" disabled>
-                        ⏹️ Stop Recording
+                    <button id="stop-recording" class="record-btn cosmic-btn" disabled>
+                        <img src="planet.png" alt="" class="btn-mascot-small">
+                        <span class="btn-text">Stop Recording</span>
+                        <div class="btn-particles"></div>
                     </button>
                 </div>
                 <div class="speech-status">
                     <div id="recording-status" class="recording-status">Ready to record</div>
-                    <div id="speech-text" class="speech-text"></div>
+                    <div id="speech-text" class="speech-text cosmic-display"></div>
                 </div>
             </div>
 
             <!-- Translation Display -->
             <div id="translation-section" class="translation-section">
-                <h3>📝 Live Translations</h3>
+                <div class="section-header">
+                    <img src="waifu 4.png" alt="Waifu" class="section-mascot">
+                    <h3>Live Translations</h3>
+                </div>
                 <div class="dual-translation-container">
                     <div class="language-blob korean-blob">
                         <div class="blob-header">
-                            <h4>🇰🇷 Korean</h4>
-                            <div class="live-indicator" id="korean-live" style="display: none;">🔴 LIVE</div>
+                            <div class="blob-header-content">
+                                <h4>Korean</h4>
+                                <div class="live-indicator" id="korean-live" style="display: none;">
+                                    <span class="pulse-dot"></span>LIVE
+                                </div>
+                            </div>
+                            <div class="header-decoration"></div>
                         </div>
                         <div id="korean-text" class="blob-content">
                             <div class="placeholder-text">한국어 텍스트가 여기에 표시됩니다...</div>
                         </div>
+                        <div class="blob-footer"></div>
                     </div>
                     <div class="language-blob english-blob">
                         <div class="blob-header">
-                            <h4>🇺🇸 English</h4>
-                            <div class="live-indicator" id="english-live" style="display: none;">🔴 LIVE</div>
+                            <div class="blob-header-content">
+                                <h4>English</h4>
+                                <div class="live-indicator" id="english-live" style="display: none;">
+                                    <span class="pulse-dot"></span>LIVE
+                                </div>
+                            </div>
+                            <div class="header-decoration"></div>
                         </div>
                         <div id="english-text" class="blob-content">
                             <div class="placeholder-text">English text will appear here...</div>
                         </div>
+                        <div class="blob-footer"></div>
                     </div>
                 </div>
             </div>
         </main>
 
         <footer>
-            <p>Built for Status Network Events in South Korea</p>
+            <div class="footer-content">
+                <div class="footer-mascots">
+                    <img src="unicorn 1.png" alt="Unicorn" class="footer-mascot">
+                </div>
+                <p>Built for Status Network Events in South Korea</p>
+                <div class="footer-decoration">
+                    <img src="planet.png" alt="" class="footer-planet">
+                </div>
+            </div>
         </footer>
     </div>
 
