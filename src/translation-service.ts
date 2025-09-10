@@ -29,7 +29,7 @@ export class TranslationService {
       const sourceLangName = sourceLanguage === 'ko' ? 'Korean' : 'English';
 
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-5-nano',
         messages: [
           {
             role: 'system',
