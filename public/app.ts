@@ -473,7 +473,7 @@ class TranslatorApp {
       const formData = new FormData();
       formData.append('file', audioBlob, 'audio.webm');
       formData.append('model', 'whisper-1');
-      formData.append('prompt', 'This is a presentation about Status Network, Logos, Codex, Waku, Nimbus, and IFT (Institute of Free Technology). Status is a decentralized messaging platform. Logos is a network. Codex is storage. IFT encompasses all these organizations and projects.');
+      formData.append('prompt', 'This is a technical presentation about Status Network, Logos, Codex, Waku, Nimbus, Nomos, and IFT (Institute of Free Technology). Status is a decentralized messaging platform. Logos is a network. Codex is storage. DA Layer. Client. Technical blockchain discussion.');
       
       const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
         method: 'POST',

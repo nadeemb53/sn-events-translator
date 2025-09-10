@@ -54,29 +54,35 @@ TECHNICAL WEB3 TERMS:
 - Tokenomics, Staking rewards, Yield farming
 
 KOREAN SPECIFIC MAPPINGS:
-- Status → 스테이터스 (use Korean phonetic, not translation)
-- Logos → 로고스 (use Korean phonetic)
-- Codex → 코덱스 (use Korean phonetic)
-- Smart Contract → 스마트 컨트랙트
-- Gasless → 가스리스 (gasless transactions)
-- Layer 2 → 레이어 2
-- Rollup → 롤업
-- dApp → 디앱
-- DeFi → 디파이
-- NFT → 엔에프티
-- DAO → 다오
-- Web3 → 웹3
-- Blockchain → 블록체인
+- Status → 스테이터스
+- The Status Network → 스테이터스 네트워크
+- Status Messenger → 스테이터스 메신저
+- Status network token → 스테이터스 네트워크 토큰
+- Logos → 로고스
+- Codex → 코덱스
+- Waku → 와쿠
+- Nimbus → 님버스
+- Nomos → 노모스
 - Ethereum → 이더리움
-- Wallet → 지갑
-- Token → 토큰
-- Staking → 스테이킹
-- Mining → 마이닝
-- Node → 노드
-- Validator → 검증자
-- Consensus → 합의
-- Decentralized → 탈중앙화
-- Protocol → 프로토콜
+- Ethereum 2.0 → 이더리움 2.0
+- Ethereum Wallet → 이더리움 지갑
+- Ethereum price → 이더리움 가격
+- Ethereum network → 이더리움 네트워크
+- Bitcoin → 비트코인
+- Blockchain → 블록체인
+- Crypto → 크립토
+- Cryptocurrency → 암호화폐
+- Decentralization → 탈중앙화
+- Decentralized internet → 탈중앙 인터넷
+- dApps → 디앱
+- Decentralized apps → 탈중앙 앱
+- Web3 browser → 웹3 브라우저
+- Chainlink → 체인링크
+- Coinbase → 코인베이스
+- Private messaging → 비밀 메시징
+- Encrypted chat → 암호화 채팅
+- Secure messenger → 안전한 메신저
+- Decentralized chat → 탈중앙 채팅
 
 Translate the following ${sourceLangName} text to ${targetLanguage}. Keep Status Network brand names in their phonetic Korean form. Preserve technical accuracy and use appropriate Web3 terminology. Only respond with the translation, no explanations.`,
           },
@@ -104,12 +110,32 @@ Translate the following ${sourceLangName} text to ${targetLanguage}. Keep Status
   }> {
     // Fix common Whisper misrecognitions before translation
     let correctedText = text
+      // Remove common Whisper hallucinations and artifacts
+      .replace(/\b(thank you|thanks|for watching|for your attention|bye|goodbye)\b/gi, '')
+      .replace(/\.\.\./g, '.') // Clean up ellipsis
+      
+      // Fix Status ecosystem terms
       .replace(/\bstudies\b/gi, 'Status')
       .replace(/\bstatistical\b/gi, 'Status') 
       .replace(/\bIFTTT+\b/gi, 'IFT')
       .replace(/\bIFD\b/gi, 'IFT')
-      .replace(/\bthank you\b/gi, '') // Remove thank you artifacts
+      
+      // Fix other Web3 terms that might be misrecognized
+      .replace(/\bweb 3\b/gi, 'Web3')
+      .replace(/\bD app\b/gi, 'dApp')
+      .replace(/\bD apps\b/gi, 'dApps')
+      .replace(/\bethereum 2\b/gi, 'Ethereum 2.0')
+      .replace(/\bbit coin\b/gi, 'Bitcoin')
+      .replace(/\bchain link\b/gi, 'Chainlink')
+      
+      // Clean up extra spaces and trim
+      .replace(/\s+/g, ' ')
       .trim();
+    
+    // Skip if text becomes empty after cleaning
+    if (!correctedText) {
+      throw new Error('No meaningful content to translate');
+    }
     
     const sourceLanguage = await this.detectLanguage(correctedText);
     const targetLanguage = sourceLanguage === 'ko' ? 'en' : 'ko';
