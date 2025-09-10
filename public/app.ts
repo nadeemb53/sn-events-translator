@@ -29,6 +29,7 @@ class TranslatorApp {
   private translations: TranslationMessage[] = [];
   private recordingStartTime: number = 0;
   private silenceTimeout: number | null = null;
+  private lastPassword: string | null = null;
 
   // UI Elements
   private connectionStatus: HTMLElement;
@@ -236,6 +237,15 @@ class TranslatorApp {
         this.connectionStatus.textContent = 'Connected';
         this.connectionStatus.classList.remove('disconnected');
         this.connectionStatus.classList.add('connected');
+        
+        // Re-authenticate if we were previously authenticated as publisher
+        if (this.isPublisher && this.lastPassword) {
+          console.log('Re-authenticating as publisher after reconnection');
+          this.ws?.send(JSON.stringify({ 
+            type: 'auth', 
+            password: this.lastPassword 
+          }));
+        }
       };
       
       this.ws.onmessage = (event) => {
@@ -324,6 +334,9 @@ class TranslatorApp {
       this.authStatus.classList.add('error');
       return;
     }
+    
+    // Store password for re-authentication
+    this.lastPassword = password;
     
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify({
