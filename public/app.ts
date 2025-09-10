@@ -472,8 +472,9 @@ class TranslatorApp {
       
       const formData = new FormData();
       formData.append('file', audioBlob, 'audio.webm');
-      formData.append('model', 'whisper-1');
+      formData.append('model', 'gpt-4o-transcribe');
       formData.append('prompt', 'This is a technical presentation about blockchain technology. Key terms: Status Network is a decentralized messaging platform, Logos is a decentralized autonomous organization platform, Codex is a decentralized storage network, Waku is a privacy-preserving communication protocol, Nimbus is an Ethereum client, Nomos is a blockchain project, IFT stands for Institute of Free Technology, DA Layer means Data Availability Layer, L2 means Layer 2 scaling solutions. The speaker is discussing technical blockchain concepts, smart contracts, deployment, and ecosystem integration.');
+      formData.append('response_format', 'text');
       
       const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
         method: 'POST',
