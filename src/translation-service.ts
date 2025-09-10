@@ -32,7 +32,7 @@ export class TranslationService {
         model: 'gpt-5-nano',
         messages: [
           {
-            role: 'system',
+            role: 'user',
             content: `You are a professional translator specializing in Status Network, Logos Network, and Web3 ecosystem terminology. You have deep expertise in:
 
 STATUS NETWORK ECOSYSTEM:
@@ -94,16 +94,9 @@ CRITICAL RULES:
 - Keep Status Network brand names in their phonetic Korean form
 - Use the Korean mappings provided above
 
-TEXT TO TRANSLATE:`,
-          },
-          {
-            role: 'user',
-            content: text,
+TEXT TO TRANSLATE: ${text}`,
           },
         ],
-        temperature: 0.1,
-        max_completion_tokens: 500,
-        stop: ["I'm", "I am", "How can", "Please"],
       });
 
       let translation = completion.choices[0]?.message?.content?.trim() || 'Translation failed';
