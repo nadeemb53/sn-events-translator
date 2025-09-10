@@ -84,18 +84,40 @@ KOREAN SPECIFIC MAPPINGS:
 - Secure messenger → 안전한 메신저
 - Decentralized chat → 탈중앙 채팅
 
-Translate the following ${sourceLangName} text to ${targetLanguage}. Keep Status Network brand names in their phonetic Korean form. Preserve technical accuracy and use appropriate Web3 terminology. Only respond with the translation, no explanations.`,
+You are a direct translation tool. Translate the following ${sourceLangName} text to ${targetLanguage}. 
+
+CRITICAL RULES:
+- Only output the translation, nothing else
+- No "I'm here to help" or explanatory text
+- No conversational responses
+- Just translate the input text directly
+- Keep Status Network brand names in their phonetic Korean form
+- Use the Korean mappings provided above
+
+TEXT TO TRANSLATE:`,
           },
           {
             role: 'user',
             content: text,
           },
         ],
-        temperature: 0.1,
-        max_tokens: 1000,
+        temperature: 0.05,
+        max_tokens: 500,
+        stop: ["I'm", "I am", "How can", "Please", "Just provide"],
       });
 
-      return completion.choices[0]?.message?.content?.trim() || 'Translation failed';
+      let translation = completion.choices[0]?.message?.content?.trim() || 'Translation failed';
+      
+      // Filter out conversational responses
+      if (translation.includes("I'm here to help") || 
+          translation.includes("Please provide") ||
+          translation.includes("Just let me know") ||
+          translation.includes("I'll take care") ||
+          translation.includes("How can I help")) {
+        return 'Translation failed - invalid response';
+      }
+      
+      return translation;
     } catch (error) {
       console.error('Translation error:', error);
       throw new Error('Translation service unavailable');
