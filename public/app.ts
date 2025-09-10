@@ -426,7 +426,7 @@ class TranslatorApp {
       this.recordingStartTime = Date.now();
       this.speechText.textContent = '';
       
-      // Record in 5-second chunks for better context and accuracy
+      // Record in 8-second chunks for even better context and accuracy
       this.mediaRecorder.start();
       this.scheduleNextChunk();
       
@@ -454,7 +454,7 @@ class TranslatorApp {
             }
           }, 100);
         }
-      }, 5000); // 5-second chunks for better accuracy
+      }, 8000); // 8-second chunks for even better accuracy
     }
   }
   
@@ -466,14 +466,15 @@ class TranslatorApp {
       this.audioChunks = [];
       
       // Skip very short recordings (need substantial audio for good transcription)
-      if (audioBlob.size < 10000) return;
+      if (audioBlob.size < 15000) return;
       
       this.recordingStatus.textContent = '🔄 Transcribing with Whisper...';
       
       const formData = new FormData();
       formData.append('file', audioBlob, 'audio.webm');
       formData.append('model', 'gpt-4o-transcribe');
-      formData.append('prompt', 'This is a technical presentation about blockchain technology. Key terms: Status Network is a decentralized messaging platform, Logos is a decentralized autonomous organization platform, Codex is a decentralized storage network, Waku is a privacy-preserving communication protocol, Nimbus is an Ethereum client, Nomos is a blockchain project, IFT stands for Institute of Free Technology, DA Layer means Data Availability Layer, L2 means Layer 2 scaling solutions. The speaker is discussing technical blockchain concepts, smart contracts, deployment, and ecosystem integration.');
+      formData.append('temperature', '0');
+      formData.append('prompt', 'This is a technical blockchain presentation about Status Network ecosystem in English or Korean. Key organizations: Status Network/스테이터스 (decentralized messaging), Logos/로고스 (DAO platform), Codex/코덱스 (decentralized storage), Waku/와쿠 (privacy protocol), Nimbus/님버스 (Ethereum client), Nomos/노모스 (blockchain/DA Layer). IFT = Institute of Free Technology (umbrella organization). Common English phrases: "Status communities", "Logos communities", "Status ecosystem", "Logos ecosystem", "deploy contracts", "L2s", "DA Layer", "as a client", "public home network", "can\'t stand". Common Korean terms: 스테이터스 네트워크, 블록체인, 스마트 컨트랙트, 탈중앙화. Auto-detect language and transcribe accurately.');
       formData.append('response_format', 'text');
       
       const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
