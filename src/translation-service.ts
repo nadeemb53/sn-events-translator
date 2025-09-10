@@ -108,15 +108,21 @@ TEXT TO TRANSLATE:`,
 
       let translation = completion.choices[0]?.message?.content?.trim() || 'Translation failed';
       
+      console.log(`🤖 Raw OpenAI response: "${translation}"`);
+      
       // Filter out conversational responses
       if (translation.includes("I'm here to help") || 
           translation.includes("Please provide") ||
           translation.includes("Just let me know") ||
           translation.includes("I'll take care") ||
-          translation.includes("How can I help")) {
+          translation.includes("How can I help") ||
+          translation.includes("How may I") ||
+          translation.includes("What would you like")) {
+        console.log(`❌ Filtered out conversational response: "${translation}"`);
         return 'Translation failed - invalid response';
       }
       
+      console.log(`✅ Valid translation: "${translation}"`);
       return translation;
     } catch (error) {
       console.error('Translation error:', error);
@@ -156,6 +162,7 @@ TEXT TO TRANSLATE:`,
     
     // Skip if text becomes empty after cleaning
     if (!correctedText) {
+      console.log(`❌ Text became empty after cleaning. Original: "${text}"`);
       throw new Error('No meaningful content to translate');
     }
     

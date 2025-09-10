@@ -168,10 +168,12 @@ async function handleTranslation(ws: WebSocket, text: string, isFinal: boolean =
   }
 
   try {
-    console.log(`Received translation request: "${text}" (isFinal: ${isFinal})`);
+    console.log(`🔄 Received translation request: "${text}" (isFinal: ${isFinal})`);
     
     // With Whisper, we always get complete phrases, so simplify the logic
+    console.log('📝 Calling translation service...');
     const result = await translationService.translateText(text);
+    console.log('✅ Translation service completed');
     
     const translationMessage: TranslationMessage = {
       id: Date.now().toString(),
@@ -183,21 +185,27 @@ async function handleTranslation(ws: WebSocket, text: string, isFinal: boolean =
       isFinal: true,
     };
 
+    console.log('📤 Broadcasting translation to subscribers...');
     // Broadcast to all subscribers
     broadcastToSubscribers({
       type: 'translation',
       translation: translationMessage,
     });
 
-    console.log(`Translation sent: ${result.sourceLanguage} -> ${result.targetLanguage}`);
-    console.log(`Original: "${result.originalText}"`);
-    console.log(`Translated: "${result.translatedText}"`);
+    console.log(`✅ Translation sent: ${result.sourceLanguage} -> ${result.targetLanguage}`);
+    console.log(`📝 Original: "${result.originalText}"`);
+    console.log(`🌐 Translated: "${result.translatedText}"`);
+    console.log(`👥 Sent to ${connections.size} connections`);
     
   } catch (error) {
-    console.error('Translation error:', error);
+    console.error('❌ Translation error:', error);
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : 'No stack trace';
+    console.error('Error details:', errorMsg);
+    console.error('Stack:', errorStack);
     ws.send(JSON.stringify({
       type: 'error',
-      data: 'Translation failed'
+      data: `Translation failed: ${errorMsg}`
     }));
   }
 }

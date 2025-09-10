@@ -280,8 +280,12 @@ class TranslatorApp {
         break;
         
       case 'translation':
+        console.log('🌐 Received translation message:', message);
         if (message.translation) {
+          console.log('📝 Translation data:', message.translation);
           this.addTranslation(message.translation);
+        } else {
+          console.log('❌ No translation data in message');
         }
         break;
         
@@ -551,12 +555,17 @@ class TranslatorApp {
   }
 
   private addTranslation(translation: TranslationMessage): void {
+    console.log('🎯 Adding translation to blobs:', translation);
+    
     // Show live indicators
     if (!translation.isFinal) {
       this.showLiveIndicators(translation.sourceLanguage);
     } else {
       this.hideLiveIndicators();
     }
+    
+    console.log(`📝 Adding to ${translation.sourceLanguage} blob: "${translation.originalText}"`);
+    console.log(`🌐 Adding to ${translation.targetLanguage} blob: "${translation.translatedText}"`);
     
     // Add text to the appropriate blob based on language
     this.appendToBlob(translation.originalText, translation.sourceLanguage, !translation.isFinal);
