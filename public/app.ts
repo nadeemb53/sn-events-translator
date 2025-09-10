@@ -280,12 +280,8 @@ class TranslatorApp {
         break;
         
       case 'translation':
-        console.log('🌐 Received translation message:', message);
         if (message.translation) {
-          console.log('📝 Translation data:', message.translation);
           this.addTranslation(message.translation);
-        } else {
-          console.log('❌ No translation data in message');
         }
         break;
         
@@ -430,7 +426,7 @@ class TranslatorApp {
       this.recordingStartTime = Date.now();
       this.speechText.textContent = '';
       
-      // Record in 3-second chunks for real-time processing
+      // Record in 5-second chunks for better context and accuracy
       this.mediaRecorder.start();
       this.scheduleNextChunk();
       
@@ -458,7 +454,7 @@ class TranslatorApp {
             }
           }, 100);
         }
-      }, 3000); // 3-second chunks
+      }, 5000); // 5-second chunks for better accuracy
     }
   }
   
@@ -469,15 +465,16 @@ class TranslatorApp {
       const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
       this.audioChunks = [];
       
-      // Skip very short recordings (avoid picking up button clicks/artifacts)
-      if (audioBlob.size < 5000) return;
+      // Skip very short recordings (need substantial audio for good transcription)
+      if (audioBlob.size < 10000) return;
       
       this.recordingStatus.textContent = '🔄 Transcribing with Whisper...';
       
       const formData = new FormData();
       formData.append('file', audioBlob, 'audio.webm');
-      formData.append('model', 'whisper-1');
-      formData.append('prompt', 'This is a technical presentation about Status Network, Logos, Codex, Waku, Nimbus, Nomos, and IFT (Institute of Free Technology). Status is a decentralized messaging platform. Logos is a network. Codex is storage. DA Layer. Client. Technical blockchain discussion.');
+      formData.append('model', 'gpt-4o-transcribe');
+      formData.append('prompt', 'This is a technical presentation about blockchain technology. Key terms: Status Network is a decentralized messaging platform, Logos is a decentralized autonomous organization platform, Codex is a decentralized storage network, Waku is a privacy-preserving communication protocol, Nimbus is an Ethereum client, Nomos is a blockchain project, IFT stands for Institute of Free Technology, DA Layer means Data Availability Layer, L2 means Layer 2 scaling solutions. The speaker is discussing technical blockchain concepts, smart contracts, deployment, and ecosystem integration.');
+      formData.append('response_format', 'text');
       
       const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
         method: 'POST',
@@ -555,17 +552,12 @@ class TranslatorApp {
   }
 
   private addTranslation(translation: TranslationMessage): void {
-    console.log('🎯 Adding translation to blobs:', translation);
-    
     // Show live indicators
     if (!translation.isFinal) {
       this.showLiveIndicators(translation.sourceLanguage);
     } else {
       this.hideLiveIndicators();
     }
-    
-    console.log(`📝 Adding to ${translation.sourceLanguage} blob: "${translation.originalText}"`);
-    console.log(`🌐 Adding to ${translation.targetLanguage} blob: "${translation.translatedText}"`);
     
     // Add text to the appropriate blob based on language
     this.appendToBlob(translation.originalText, translation.sourceLanguage, !translation.isFinal);
