@@ -103,7 +103,7 @@ TEXT TO TRANSLATE:`,
         ],
         temperature: 0.1,
         max_tokens: 500,
-        stop: ["I'm", "I am", "How can", "Please", "Just provide"],
+        stop: ["I'm", "I am", "How can", "Please"],
       });
 
       let translation = completion.choices[0]?.message?.content?.trim() || 'Translation failed';
