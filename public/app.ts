@@ -342,7 +342,19 @@ class TranslatorApp {
   private async fetchOpenAIKey(): Promise<void> {
     try {
       const password = this.publisherPassword.value.trim();
-      const response = await fetch('/api/openai-key', {
+      
+      // Determine the correct backend URL
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      let apiUrl: string;
+      
+      if (isLocal) {
+        apiUrl = `${window.location.protocol}//${window.location.host}/api/openai-key`;
+      } else {
+        // Production API URL - Connected to Railway backend
+        apiUrl = 'https://sn-events-translator-production.up.railway.app/api/openai-key';
+      }
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -355,7 +367,7 @@ class TranslatorApp {
         this.openaiApiKey = data.apiKey;
         console.log('OpenAI API key fetched successfully');
       } else {
-        console.error('Failed to fetch OpenAI API key');
+        console.error('Failed to fetch OpenAI API key:', response.status);
       }
     } catch (error) {
       console.error('Error fetching OpenAI API key:', error);
