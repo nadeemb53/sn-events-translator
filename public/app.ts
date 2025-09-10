@@ -23,10 +23,12 @@ class TranslatorApp {
   private ws: WebSocket | null = null;
   private isPublisher = false;
   private isRecording = false;
-  private recognition: SpeechRecognition | null = null;
+  private mediaRecorder: MediaRecorder | null = null;
+  private audioChunks: Blob[] = [];
+  private openaiApiKey: string | null = null;
   private translations: TranslationMessage[] = [];
-  private interimTimeout: number | null = null;
-  private currentInterimTranslation: TranslationMessage | null = null;
+  private recordingStartTime: number = 0;
+  private silenceTimeout: number | null = null;
 
   // UI Elements
   private connectionStatus: HTMLElement;
@@ -267,6 +269,7 @@ class TranslatorApp {
         this.authStatus.textContent = '✅ Publisher mode activated!';
         this.authStatus.classList.remove('error');
         this.authStatus.classList.add('success');
+        this.fetchOpenAIKey();
         this.showPublisherControls();
         break;
         
@@ -336,14 +339,37 @@ class TranslatorApp {
     }
   }
 
+  private async fetchOpenAIKey(): Promise<void> {
+    try {
+      const password = this.publisherPassword.value.trim();
+      const response = await fetch('/api/openai-key', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        this.openaiApiKey = data.apiKey;
+        console.log('OpenAI API key fetched successfully');
+      } else {
+        console.error('Failed to fetch OpenAI API key');
+      }
+    } catch (error) {
+      console.error('Error fetching OpenAI API key:', error);
+    }
+  }
+
   private showPublisherControls(): void {
     this.authSection.classList.add('hidden');
     this.publisherControls.classList.remove('hidden');
   }
 
-  private startRecording(): void {
-    if (!this.recognition) {
-      this.recordingStatus.textContent = '❌ Speech recognition not supported';
+  private async startRecording(): Promise<void> {
+    if (!this.openaiApiKey) {
+      this.recordingStatus.textContent = '❌ OpenAI API key not available';
       return;
     }
     
@@ -357,25 +383,122 @@ class TranslatorApp {
       return;
     }
     
-    this.isRecording = true;
-    this.speechText.textContent = '';
-    
     try {
-      this.recognition.start();
+      // Initialize audio recording
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          sampleRate: 16000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true
+        } 
+      });
+      
+      this.mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+      
+      this.audioChunks = [];
+      
+      this.mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          this.audioChunks.push(event.data);
+        }
+      };
+      
+      this.mediaRecorder.onstop = async () => {
+        await this.processAudioWithWhisper();
+      };
+      
+      this.isRecording = true;
+      this.recordingStartTime = Date.now();
+      this.speechText.textContent = '';
+      
+      // Record in 3-second chunks for real-time processing
+      this.mediaRecorder.start();
+      this.scheduleNextChunk();
+      
+      this.recordingStatus.textContent = '🎤 Recording with Whisper...';
       this.updateRecordingButtons();
+      
     } catch (error) {
       console.error('Failed to start recording:', error);
-      this.recordingStatus.textContent = '❌ Failed to start recording';
+      this.recordingStatus.textContent = '❌ Microphone access denied';
       this.isRecording = false;
       this.updateRecordingButtons();
     }
   }
+  
+  private scheduleNextChunk(): void {
+    if (this.isRecording && this.mediaRecorder) {
+      setTimeout(() => {
+        if (this.isRecording && this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+          this.mediaRecorder.stop();
+          // Restart for next chunk
+          setTimeout(() => {
+            if (this.isRecording && this.mediaRecorder) {
+              this.mediaRecorder.start();
+              this.scheduleNextChunk();
+            }
+          }, 100);
+        }
+      }, 3000); // 3-second chunks
+    }
+  }
+  
+  private async processAudioWithWhisper(): Promise<void> {
+    if (!this.openaiApiKey || this.audioChunks.length === 0) return;
+    
+    try {
+      const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+      this.audioChunks = [];
+      
+      // Skip very short recordings
+      if (audioBlob.size < 1000) return;
+      
+      this.recordingStatus.textContent = '🔄 Transcribing with Whisper...';
+      
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'audio.webm');
+      formData.append('model', 'whisper-1');
+      
+      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Whisper API error: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      const transcript = result.text?.trim();
+      
+      if (transcript && this.ws && this.isPublisher) {
+        this.speechText.textContent = transcript;
+        this.sendTranslation(transcript);
+        this.recordingStatus.textContent = '🎤 Recording with Whisper...';
+      }
+      
+    } catch (error) {
+      console.error('Whisper transcription error:', error);
+      this.recordingStatus.textContent = '❌ Transcription failed';
+    }
+  }
 
   private stopRecording(): void {
-    if (this.recognition && this.isRecording) {
-      this.recognition.stop();
+    if (this.mediaRecorder && this.isRecording) {
+      this.mediaRecorder.stop();
+      // Stop all audio tracks
+      if (this.mediaRecorder.stream) {
+        this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
+      }
     }
     this.isRecording = false;
+    this.recordingStatus.textContent = 'Recording stopped';
     this.updateRecordingButtons();
   }
 

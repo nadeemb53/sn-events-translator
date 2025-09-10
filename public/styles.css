@@ -501,6 +501,7 @@ footer {
     }
     
     .language-blob {
-        height: 300px;
+        height: 400px;
+        min-height: 400px;
     }
 }

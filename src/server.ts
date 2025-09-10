@@ -49,6 +49,17 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// OpenAI API key endpoint (protected)
+app.post('/api/openai-key', (req, res) => {
+  const { password } = req.body;
+  
+  if (password !== PUBLISHER_PASSWORD) {
+    return res.status(401).json({ error: 'Invalid password' });
+  }
+  
+  res.json({ apiKey: OPENAI_API_KEY });
+});
+
 // WebSocket handling
 wss.on('connection', (ws) => {
   console.log('New WebSocket connection');
