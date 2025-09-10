@@ -490,8 +490,8 @@ class TranslatorApp {
         throw new Error(`Whisper API error: ${response.status} - ${errorText}`);
       }
 
-      const result = await response.json();
-      const transcript = result.text?.trim();
+      // gpt-4o-transcribe with response_format=text returns plain text, not JSON
+      const transcript = (await response.text()).trim();
       
       if (transcript && this.ws && this.isPublisher) {
         // Accumulate text instead of replacing
