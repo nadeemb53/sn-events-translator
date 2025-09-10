@@ -130,10 +130,23 @@ wss.on('connection', (ws) => {
 async function handleAuthentication(ws: WebSocket, password: string) {
   if (password === PUBLISHER_PASSWORD) {
     // Remove existing publisher if any
-    if (publisher) {
+    if (publisher && publisher !== ws) {
       const existingConnection = connections.get(publisher);
       if (existingConnection) {
         existingConnection.isPublisher = false;
+        console.log('Demoting previous publisher');
+        
+        // Notify previous publisher they're no longer publisher
+        if (publisher.readyState === WebSocket.OPEN) {
+          try {
+            publisher.send(JSON.stringify({
+              type: 'auth_failed',
+              data: 'Another publisher has taken over'
+            }));
+          } catch (error) {
+            console.error('Error notifying previous publisher:', error);
+          }
+        }
       }
     }
     
@@ -220,20 +233,64 @@ async function handleTranslation(ws: WebSocket, text: string, isFinal: boolean =
 }
 
 function broadcastToSubscribers(message: WebSocketMessage) {
-  connections.forEach((connection) => {
+  connections.forEach((connection, ws) => {
     if (connection.ws.readyState === WebSocket.OPEN) {
-      connection.ws.send(JSON.stringify(message));
+      try {
+        connection.ws.send(JSON.stringify(message));
+      } catch (error) {
+        console.error('Error sending message to client, removing connection:', error);
+        connections.delete(ws);
+      }
+    } else {
+      // Clean up stale connections
+      console.log('Removing stale connection with readyState:', connection.ws.readyState);
+      connections.delete(ws);
     }
   });
 }
 
 function broadcastSubscriberCount() {
+  // Clean up any stale connections first before counting
+  cleanupStaleConnections();
+  
   const count = connections.size;
+  console.log(`Broadcasting subscriber count: ${count}`);
   broadcastToSubscribers({
     type: 'subscriber_count',
     count: count,
   });
 }
+
+function cleanupStaleConnections() {
+  const staleConnections: WebSocket[] = [];
+  
+  connections.forEach((connection, ws) => {
+    if (connection.ws.readyState !== WebSocket.OPEN) {
+      staleConnections.push(ws);
+    }
+  });
+  
+  staleConnections.forEach(ws => {
+    console.log('Cleaning up stale connection');
+    connections.delete(ws);
+  });
+  
+  if (staleConnections.length > 0) {
+    console.log(`Cleaned up ${staleConnections.length} stale connections`);
+  }
+}
+
+// Periodic cleanup of stale connections
+setInterval(() => {
+  const initialCount = connections.size;
+  cleanupStaleConnections();
+  const finalCount = connections.size;
+  
+  if (initialCount !== finalCount) {
+    console.log(`Periodic cleanup: ${initialCount} -> ${finalCount} connections`);
+    broadcastSubscriberCount();
+  }
+}, 30000); // Clean up every 30 seconds
 
 // Start server
 server.listen(PORT, () => {

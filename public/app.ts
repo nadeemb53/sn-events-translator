@@ -30,6 +30,8 @@ class TranslatorApp {
   private recordingStartTime: number = 0;
   private silenceTimeout: number | null = null;
   private lastPassword: string | null = null;
+  private recognition: any = null; // SpeechRecognition interface
+  private interimTimeout: number | null = null;
 
   // UI Elements
   private connectionStatus: HTMLElement;
@@ -272,6 +274,18 @@ class TranslatorApp {
   }
 
   private connectWebSocket(): void {
+    // Prevent multiple concurrent connection attempts
+    if (this.ws && (this.ws.readyState === WebSocket.CONNECTING || this.ws.readyState === WebSocket.OPEN)) {
+      console.log('WebSocket connection already exists, skipping new connection');
+      return;
+    }
+    
+    // Close existing connection if any
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
+    
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     let wsUrl: string;
     
@@ -284,10 +298,11 @@ class TranslatorApp {
     }
     
     try {
+      console.log('Attempting WebSocket connection to:', wsUrl);
       this.ws = new WebSocket(wsUrl);
       
       this.ws.onopen = () => {
-        console.log('WebSocket connected');
+        console.log('WebSocket connected successfully');
         this.connectionStatus.textContent = 'Connected';
         this.connectionStatus.classList.remove('disconnected');
         this.connectionStatus.classList.add('connected');
@@ -307,21 +322,30 @@ class TranslatorApp {
         this.handleWebSocketMessage(message);
       };
       
-      this.ws.onclose = () => {
-        console.log('WebSocket disconnected');
+      this.ws.onclose = (event) => {
+        console.log('WebSocket disconnected, code:', event.code, 'reason:', event.reason);
         this.connectionStatus.textContent = 'Disconnected';
         this.connectionStatus.classList.remove('connected');
         this.connectionStatus.classList.add('disconnected');
         
-        // Reconnect after 3 seconds
-        setTimeout(() => this.connectWebSocket(), 3000);
+        // Only attempt reconnection if it wasn't a deliberate close
+        if (event.code !== 1000) { // 1000 = normal closure
+          console.log('Scheduling reconnection in 3 seconds...');
+          setTimeout(() => this.connectWebSocket(), 3000);
+        }
       };
       
       this.ws.onerror = (error) => {
         console.error('WebSocket error:', error);
+        this.connectionStatus.textContent = 'Connection Error';
+        this.connectionStatus.classList.remove('connected');
+        this.connectionStatus.classList.add('disconnected');
       };
     } catch (error) {
-      console.error('Failed to connect WebSocket:', error);
+      console.error('Failed to create WebSocket:', error);
+      this.connectionStatus.textContent = 'Connection Failed';
+      this.connectionStatus.classList.remove('connected');
+      this.connectionStatus.classList.add('disconnected');
       setTimeout(() => this.connectWebSocket(), 3000);
     }
   }
@@ -497,7 +521,7 @@ class TranslatorApp {
       this.mediaRecorder.start();
       this.scheduleNextChunk();
       
-      this.recordingStatus.textContent = '🎤 Recording with Whisper...';
+      this.recordingStatus.textContent = '🎤 Recording...';
       this.updateRecordingButtons();
       
     } catch (error) {
@@ -535,7 +559,7 @@ class TranslatorApp {
       // Skip very short recordings (need substantial audio for good transcription)
       if (audioBlob.size < 15000) return;
       
-      this.recordingStatus.textContent = '🔄 Transcribing with Whisper...';
+      this.recordingStatus.textContent = '🔄 Transcribing...';
       
       const formData = new FormData();
       formData.append('file', audioBlob, 'audio.webm');
@@ -554,8 +578,8 @@ class TranslatorApp {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`Whisper API error ${response.status}:`, errorText);
-        throw new Error(`Whisper API error: ${response.status} - ${errorText}`);
+        console.error(`API error ${response.status}:`, errorText);
+        throw new Error(`API error: ${response.status} - ${errorText}`);
       }
 
       // gpt-4o-transcribe with response_format=text returns plain text, not JSON
@@ -568,13 +592,13 @@ class TranslatorApp {
         
         // Send translation
         this.sendTranslation(transcript);
-        this.recordingStatus.textContent = '🎤 Recording with Whisper...';
+        this.recordingStatus.textContent = '🎤 Recording...';
         
-        console.log('Whisper transcript:', transcript);
+        console.log('transcript:', transcript);
       }
       
     } catch (error) {
-      console.error('Whisper transcription error:', error);
+      console.error('transcription error:', error);
       this.recordingStatus.textContent = '❌ Transcription failed';
     }
   }
