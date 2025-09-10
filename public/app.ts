@@ -7,6 +7,7 @@ interface TranslationMessage {
   sourceLanguage: 'ko' | 'en';
   targetLanguage: 'ko' | 'en';
   timestamp: number;
+  isFinal?: boolean;
 }
 
 interface WebSocketMessage {
@@ -15,6 +16,7 @@ interface WebSocketMessage {
   translation?: TranslationMessage;
   password?: string;
   count?: number;
+  isFinal?: boolean;
 }
 
 class TranslatorApp {
@@ -40,7 +42,10 @@ class TranslatorApp {
   private stopRecordingBtn: HTMLButtonElement;
   private recordingStatus: HTMLElement;
   private speechText: HTMLElement;
-  private translationsContainer: HTMLElement;
+  private koreanText: HTMLElement;
+  private englishText: HTMLElement;
+  private koreanLive: HTMLElement;
+  private englishLive: HTMLElement;
 
   constructor() {
     this.initializeElements();
@@ -63,7 +68,10 @@ class TranslatorApp {
     this.stopRecordingBtn = document.getElementById('stop-recording') as HTMLButtonElement;
     this.recordingStatus = document.getElementById('recording-status')!;
     this.speechText = document.getElementById('speech-text')!;
-    this.translationsContainer = document.getElementById('translations-container')!;
+    this.koreanText = document.getElementById('korean-text')!;
+    this.englishText = document.getElementById('english-text')!;
+    this.koreanLive = document.getElementById('korean-live')!;
+    this.englishLive = document.getElementById('english-live')!;
   }
 
   private setupEventListeners(): void {
@@ -401,91 +409,76 @@ class TranslatorApp {
   }
 
   private addTranslation(translation: TranslationMessage): void {
-    // Handle interim translations differently for teleprompter effect
+    // Show live indicators
     if (!translation.isFinal) {
-      this.currentInterimTranslation = translation;
-      this.renderTranslations();
-      return;
-    }
-    
-    // Clear interim translation when final arrives
-    this.currentInterimTranslation = null;
-    
-    // Find existing translation by ID (session-based grouping)
-    const existingIndex = this.translations.findIndex(t => t.id === translation.id);
-    
-    if (existingIndex >= 0) {
-      // Update existing translation in the same box
-      this.translations[existingIndex] = translation;
+      this.showLiveIndicators(translation.sourceLanguage);
     } else {
-      // Add new translation
+      this.hideLiveIndicators();
+    }
+    
+    // Add text to the appropriate blob based on language
+    this.appendToBlob(translation.originalText, translation.sourceLanguage, !translation.isFinal);
+    this.appendToBlob(translation.translatedText, translation.targetLanguage, !translation.isFinal);
+    
+    // Store translation for potential future use
+    if (translation.isFinal) {
       this.translations.unshift(translation);
+      if (this.translations.length > 50) {
+        this.translations = this.translations.slice(0, 50);
+      }
     }
-    
-    // Keep only the last 10 translations for teleprompter clarity
-    if (this.translations.length > 10) {
-      this.translations = this.translations.slice(0, 10);
-    }
-    
-    this.renderTranslations();
   }
 
-  private renderTranslations(): void {
-    let content = '';
-    
-    // Show current interim translation at the top if available
-    if (this.currentInterimTranslation) {
-      const langDirection = this.currentInterimTranslation.sourceLanguage === 'ko' ? 'Korean → English' : 'English → Korean';
-      content += `
-        <div class="translation-item interim-translation">
-          <div class="translation-header">
-            <span class="language-indicator">${langDirection}</span>
-            <span class="interim-label">🔴 LIVE</span>
-          </div>
-          <div class="translation-content">
-            <div class="original-text">
-              <div class="text-label">Speaking...</div>
-              ${this.currentInterimTranslation.originalText}
-            </div>
-            <div class="translated-text">
-              <div class="text-label">Live Translation</div>
-              ${this.currentInterimTranslation.translatedText}
-            </div>
-          </div>
-        </div>
-      `;
-    }
-    
-    // Show final translations
-    if (this.translations.length === 0 && !this.currentInterimTranslation) {
-      content = '<div class="no-translations">🎤 Ready for live translation...</div>';
+  private showLiveIndicators(sourceLanguage: 'ko' | 'en'): void {
+    if (sourceLanguage === 'ko') {
+      this.koreanLive.style.display = 'block';
+      this.englishLive.style.display = 'none';
     } else {
-      content += this.translations.map(translation => {
-        const time = new Date(translation.timestamp).toLocaleTimeString();
-        const langDirection = translation.sourceLanguage === 'ko' ? 'Korean → English' : 'English → Korean';
-        
-        return `
-          <div class="translation-item final-translation">
-            <div class="translation-header">
-              <span class="language-indicator">${langDirection}</span>
-              <span class="timestamp">${time}</span>
-            </div>
-            <div class="translation-content">
-              <div class="original-text">
-                <div class="text-label">Original</div>
-                ${translation.originalText}
-              </div>
-              <div class="translated-text">
-                <div class="text-label">Translation</div>
-                ${translation.translatedText}
-              </div>
-            </div>
-          </div>
-        `;
-      }).join('');
+      this.englishLive.style.display = 'block';
+      this.koreanLive.style.display = 'none';
+    }
+  }
+  
+  private hideLiveIndicators(): void {
+    this.koreanLive.style.display = 'none';
+    this.englishLive.style.display = 'none';
+  }
+  
+  private appendToBlob(text: string, language: 'ko' | 'en', isInterim: boolean): void {
+    const targetElement = language === 'ko' ? this.koreanText : this.englishText;
+    
+    // Remove placeholder text if it exists
+    const placeholder = targetElement.querySelector('.placeholder-text');
+    if (placeholder) {
+      placeholder.remove();
     }
     
-    this.translationsContainer.innerHTML = content;
+    if (isInterim) {
+      // For interim results, replace or add interim text
+      let interimSpan = targetElement.querySelector('.interim-text') as HTMLSpanElement;
+      if (!interimSpan) {
+        interimSpan = document.createElement('span');
+        interimSpan.className = 'interim-text';
+        targetElement.appendChild(interimSpan);
+      }
+      interimSpan.textContent = text + ' ';
+      interimSpan.style.backgroundColor = '#fef3c7';
+      interimSpan.style.padding = '2px 4px';
+      interimSpan.style.borderRadius = '4px';
+    } else {
+      // For final results, remove interim and add final text
+      const interimSpan = targetElement.querySelector('.interim-text');
+      if (interimSpan) {
+        interimSpan.remove();
+      }
+      
+      const finalSpan = document.createElement('span');
+      finalSpan.textContent = text + ' ';
+      targetElement.appendChild(finalSpan);
+    }
+    
+    // Auto-scroll to bottom
+    targetElement.scrollTop = targetElement.scrollHeight;
   }
 
 }

@@ -61,9 +61,24 @@
             <!-- Translation Display -->
             <div id="translation-section" class="translation-section">
                 <h3>📝 Live Translations</h3>
-                <div id="translations-container" class="translations-container">
-                    <div class="no-translations">
-                        Waiting for translations...
+                <div class="dual-translation-container">
+                    <div class="language-blob korean-blob">
+                        <div class="blob-header">
+                            <h4>🇰🇷 Korean</h4>
+                            <div class="live-indicator" id="korean-live" style="display: none;">🔴 LIVE</div>
+                        </div>
+                        <div id="korean-text" class="blob-content">
+                            <div class="placeholder-text">한국어 텍스트가 여기에 표시됩니다...</div>
+                        </div>
+                    </div>
+                    <div class="language-blob english-blob">
+                        <div class="blob-header">
+                            <h4>🇺🇸 English</h4>
+                            <div class="live-indicator" id="english-live" style="display: none;">🔴 LIVE</div>
+                        </div>
+                        <div id="english-text" class="blob-content">
+                            <div class="placeholder-text">English text will appear here...</div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -67,7 +67,12 @@ Translate the following ${sourceLangName} text to ${targetLanguage}. Preserve te
   }> {
     const sourceLanguage = await this.detectLanguage(text);
     const targetLanguage = sourceLanguage === 'ko' ? 'en' : 'ko';
+    
+    console.log(`Translating: "${text}" from ${sourceLanguage} to ${targetLanguage}`);
+    
     const translatedText = await this.translate(text, sourceLanguage);
+
+    console.log(`Result: "${translatedText}"`);
 
     return {
       originalText: text,
