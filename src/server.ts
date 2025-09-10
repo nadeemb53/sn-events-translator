@@ -239,7 +239,7 @@ function broadcastSubscriberCount() {
 server.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`🌐 Publisher password: ${PUBLISHER_PASSWORD}`);
-  console.log(`🔑 Visit http://localhost:${PORT} to access the app`);
+  console.log(`🔑 Visit http://kbw.status.network to access the app`);
 });
 
 // Graceful shutdown
