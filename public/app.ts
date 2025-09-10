@@ -490,9 +490,15 @@ class TranslatorApp {
       const transcript = result.text?.trim();
       
       if (transcript && this.ws && this.isPublisher) {
-        this.speechText.textContent = transcript;
+        // Accumulate text instead of replacing
+        const currentText = this.speechText.textContent || '';
+        this.speechText.textContent = currentText ? `${currentText} ${transcript}` : transcript;
+        
+        // Send translation
         this.sendTranslation(transcript);
         this.recordingStatus.textContent = '🎤 Recording with Whisper...';
+        
+        console.log('Whisper transcript:', transcript);
       }
       
     } catch (error) {

@@ -168,78 +168,13 @@ async function handleTranslation(ws: WebSocket, text: string, isFinal: boolean =
   }
 
   try {
-    // Start or continue a session
-    if (!currentSessionId) {
-      currentSessionId = `session-${Date.now()}`;
-      currentSessionText = '';
-    }
+    console.log(`Received translation request: "${text}" (isFinal: ${isFinal})`);
     
-    // Reset session timeout (3 seconds of silence ends the session)
-    if (sessionTimeout) {
-      clearTimeout(sessionTimeout);
-    }
-    sessionTimeout = setTimeout(() => {
-      currentSessionId = null;
-      currentSessionText = '';
-    }, 3000);
-
-    // Handle interim translations (live preview)
-    if (!isFinal) {
-      // Accumulate text in current session
-      const newSessionText = currentSessionText ? `${currentSessionText} ${text}` : text;
-      currentSessionText = newSessionText;
-      
-      // Avoid translating the same interim text repeatedly
-      if (newSessionText === lastInterimTranslation) return;
-      lastInterimTranslation = newSessionText;
-      
-      // Clear any pending interim translation
-      if (interimTranslationTimeout) {
-        clearTimeout(interimTranslationTimeout);
-      }
-      
-      // Set a timeout to translate interim text if no final comes quickly
-      interimTranslationTimeout = setTimeout(async () => {
-        try {
-          const result = await translationService.translateText(newSessionText);
-          
-          const translationMessage: TranslationMessage = {
-            id: currentSessionId || `interim-${Date.now()}`,
-            originalText: result.originalText,
-            translatedText: result.translatedText,
-            sourceLanguage: result.sourceLanguage,
-            targetLanguage: result.targetLanguage,
-            timestamp: Date.now(),
-            isFinal: false,
-          };
-
-          broadcastToSubscribers({
-            type: 'translation',
-            translation: translationMessage,
-          });
-        } catch (error) {
-          console.error('Interim translation error:', error);
-        }
-      }, 500); // Wait 500ms before translating interim text
-      
-      return;
-    }
-    
-    // Handle final translations
-    if (interimTranslationTimeout) {
-      clearTimeout(interimTranslationTimeout);
-      interimTranslationTimeout = null;
-    }
-    
-    // Accumulate final text in session
-    const finalSessionText = currentSessionText ? `${currentSessionText} ${text}` : text;
-    currentSessionText = finalSessionText;
-    lastInterimTranslation = ''; // Reset interim tracking
-    
-    const result = await translationService.translateText(finalSessionText);
+    // With Whisper, we always get complete phrases, so simplify the logic
+    const result = await translationService.translateText(text);
     
     const translationMessage: TranslationMessage = {
-      id: currentSessionId || Date.now().toString(),
+      id: Date.now().toString(),
       originalText: result.originalText,
       translatedText: result.translatedText,
       sourceLanguage: result.sourceLanguage,
@@ -254,7 +189,10 @@ async function handleTranslation(ws: WebSocket, text: string, isFinal: boolean =
       translation: translationMessage,
     });
 
-    console.log(`Final translation: ${result.sourceLanguage} -> ${result.targetLanguage}`);
+    console.log(`Translation sent: ${result.sourceLanguage} -> ${result.targetLanguage}`);
+    console.log(`Original: "${result.originalText}"`);
+    console.log(`Translated: "${result.translatedText}"`);
+    
   } catch (error) {
     console.error('Translation error:', error);
     ws.send(JSON.stringify({

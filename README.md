@@ -144,4 +144,4 @@ MIT
 
 ---
 
-*Built for Status Network events in Korea*
+*Built for Status Network events in South Korea*
