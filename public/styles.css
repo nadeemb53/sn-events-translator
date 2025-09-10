@@ -10,11 +10,17 @@
 /* Cosmic Background and Animations */
 body {
     font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    /* Safari fallback for radial gradients */
+    background: #0a0b1f;
+    background: -webkit-radial-gradient(center, ellipse, #1a1b3a 0%, #0f1027 50%, #0a0b1f 100%);
     background: radial-gradient(ellipse at center, #1a1b3a 0%, #0f1027 50%, #0a0b1f 100%);
     min-height: 100vh;
+    min-height: -webkit-fill-available; /* Safari iOS fix */
     color: #fff;
     overflow-x: hidden;
     position: relative;
+    /* Safari fix for body height */
+    -webkit-text-size-adjust: 100%;
 }
 
 /* Animated Background Elements */
@@ -158,10 +164,14 @@ header {
     box-shadow: 
         0 8px 32px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    /* Safari fallback */
+    -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     position: relative;
     overflow: hidden;
+    /* Safari fallback for backdrop-filter */
+    background: rgba(26, 27, 58, 0.8);
 }
 
 header::before {
@@ -242,6 +252,8 @@ header::before {
     animation: gradientShift 4s infinite ease-in-out;
     font-weight: 700;
     letter-spacing: -1px;
+    /* Safari fallback for gradient text */
+    color: #8b5cf6;
 }
 
 @keyframes gradientShift {
@@ -304,7 +316,11 @@ header::before {
     font-weight: 500;
     color: rgba(255, 255, 255, 0.9);
     border: 1px solid rgba(255, 255, 255, 0.2);
+    /* Safari fallback */
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
+    /* Safari fallback for backdrop-filter */
+    background: rgba(26, 27, 58, 0.8);
 }
 
 /* Main Content */
@@ -333,6 +349,8 @@ main {
     transition: all 0.4s ease;
     background: rgba(255, 255, 255, 0.05);
     color: rgba(255, 255, 255, 0.8);
+    /* Safari fallback */
+    -webkit-backdrop-filter: blur(15px);
     backdrop-filter: blur(15px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     position: relative;
@@ -342,6 +360,8 @@ main {
     justify-content: center;
     gap: 10px;
     text-align: center;
+    /* Safari fallback for backdrop-filter */
+    background: rgba(15, 16, 39, 0.8);
 }
 
 .mode-btn:hover {
@@ -398,9 +418,13 @@ main {
     box-shadow: 
         0 8px 32px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    /* Safari fallback */
+    -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     position: relative;
+    /* Safari fallback for backdrop-filter */
+    background: rgba(26, 27, 58, 0.8);
 }
 
 .section-header {
@@ -502,8 +526,12 @@ main {
     transition: all 0.3s ease;
     background: rgba(255, 255, 255, 0.05);
     color: white;
+    /* Safari fallback */
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     font-family: 'Space Grotesk', sans-serif;
+    /* Safari fallback for backdrop-filter */
+    background: rgba(15, 16, 39, 0.9);
 }
 
 .input-container input::placeholder {
@@ -604,7 +632,11 @@ main {
     font-style: italic;
     color: rgba(255, 255, 255, 0.8);
     border: 1px solid rgba(255, 255, 255, 0.1);
+    /* Safari fallback */
+    -webkit-backdrop-filter: blur(5px);
     backdrop-filter: blur(5px);
+    /* Safari fallback for backdrop-filter */
+    background: rgba(10, 11, 31, 0.8);
 }
 
 /* Translation Section */
@@ -622,8 +654,12 @@ main {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    /* Safari fallback */
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     position: relative;
+    /* Safari fallback for backdrop-filter */
+    background: rgba(10, 11, 31, 0.9);
 }
 
 .korean-blob {
@@ -675,7 +711,11 @@ main {
     display: flex;
     align-items: center;
     gap: 8px;
+    /* Safari fallback */
+    -webkit-backdrop-filter: blur(5px);
     backdrop-filter: blur(5px);
+    /* Safari fallback for backdrop-filter */
+    background: rgba(0, 0, 0, 0.5);
 }
 
 .pulse-dot {
@@ -1138,5 +1178,41 @@ footer {
         padding: 12px;
         font-size: 0.9rem;
         min-height: 50px;
+    }
+}
+
+/* Safari iOS specific fixes */
+@supports (-webkit-touch-callout: none) {
+    /* iOS Safari specific styles */
+    html {
+        height: -webkit-fill-available;
+    }
+    
+    body {
+        min-height: -webkit-fill-available;
+        /* Disable text size adjust on rotation */
+        -webkit-text-size-adjust: 100%;
+        /* Prevent rubber band scrolling */
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Fix for iOS Safari backdrop-filter issues */
+    .auth-section, .publisher-controls, .translation-section,
+    header, .mode-btn, .input-container input, .count, 
+    .language-blob, .live-indicator, .cosmic-display {
+        /* Force hardware acceleration */
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0);
+        will-change: transform;
+    }
+    
+    /* Prevent zoom on input focus */
+    input, select, textarea {
+        font-size: 16px !important;
+    }
+    
+    /* Fix viewport issues */
+    .container {
+        padding-bottom: env(safe-area-inset-bottom);
     }
 }

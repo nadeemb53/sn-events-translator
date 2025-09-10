@@ -51,30 +51,84 @@ class TranslatorApp {
   private englishLive: HTMLElement;
 
   constructor() {
-    this.initializeElements();
-    this.setupEventListeners();
-    this.initializeSpeechRecognition();
-    this.connectWebSocket();
+    try {
+      // Safari iOS detection and debugging
+      this.detectSafari();
+      this.initializeElements();
+      this.setupEventListeners();
+      this.initializeSpeechRecognition();
+      this.connectWebSocket();
+    } catch (error) {
+      console.error('Failed to initialize TranslatorApp:', error);
+      // Display error to user
+      document.body.innerHTML = `
+        <div style="color: white; padding: 20px; text-align: center; background: #0a0b1f; min-height: 100vh;">
+          <h1>Initialization Error</h1>
+          <p>Failed to initialize the application: ${error.message}</p>
+          <p>Please refresh the page and try again.</p>
+          <button onclick="location.reload()" style="padding: 10px 20px; margin-top: 20px; background: #8b5cf6; color: white; border: none; border-radius: 5px; cursor: pointer;">Refresh Page</button>
+        </div>
+      `;
+    }
+  }
+
+  private detectSafari(): void {
+    const isSafari = /Safari/.test(navigator.userAgent) && /Apple Computer/.test(navigator.vendor);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    if (isSafari || isIOS) {
+      console.log('Safari/iOS detected, applying compatibility fixes');
+      // Add safari-specific class to body for additional styling
+      document.body.classList.add('safari-browser');
+      
+      // Force minimum font size to prevent zoom on iOS
+      const meta = document.createElement('meta');
+      meta.name = 'viewport';
+      meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+      document.head.appendChild(meta);
+    }
   }
 
   private initializeElements(): void {
-    this.connectionStatus = document.getElementById('connection-status')!;
-    this.subscriberCount = document.getElementById('subscriber-count')!;
-    this.subscriberModeBtn = document.getElementById('subscriber-mode-btn') as HTMLButtonElement;
-    this.publisherModeBtn = document.getElementById('publisher-mode-btn') as HTMLButtonElement;
-    this.authSection = document.getElementById('auth-section')!;
-    this.publisherPassword = document.getElementById('publisher-password') as HTMLInputElement;
-    this.authBtn = document.getElementById('auth-btn') as HTMLButtonElement;
-    this.authStatus = document.getElementById('auth-status')!;
-    this.publisherControls = document.getElementById('publisher-controls')!;
-    this.startRecordingBtn = document.getElementById('start-recording') as HTMLButtonElement;
-    this.stopRecordingBtn = document.getElementById('stop-recording') as HTMLButtonElement;
-    this.recordingStatus = document.getElementById('recording-status')!;
-    this.speechText = document.getElementById('speech-text')!;
-    this.koreanText = document.getElementById('korean-text')!;
-    this.englishText = document.getElementById('english-text')!;
-    this.koreanLive = document.getElementById('korean-live')!;
-    this.englishLive = document.getElementById('english-live')!;
+    try {
+      this.connectionStatus = document.getElementById('connection-status');
+      this.subscriberCount = document.getElementById('subscriber-count');
+      this.subscriberModeBtn = document.getElementById('subscriber-mode-btn') as HTMLButtonElement;
+      this.publisherModeBtn = document.getElementById('publisher-mode-btn') as HTMLButtonElement;
+      this.authSection = document.getElementById('auth-section');
+      this.publisherPassword = document.getElementById('publisher-password') as HTMLInputElement;
+      this.authBtn = document.getElementById('auth-btn') as HTMLButtonElement;
+      this.authStatus = document.getElementById('auth-status');
+      this.publisherControls = document.getElementById('publisher-controls');
+      this.startRecordingBtn = document.getElementById('start-recording') as HTMLButtonElement;
+      this.stopRecordingBtn = document.getElementById('stop-recording') as HTMLButtonElement;
+      this.recordingStatus = document.getElementById('recording-status');
+      this.speechText = document.getElementById('speech-text');
+      this.koreanText = document.getElementById('korean-text');
+      this.englishText = document.getElementById('english-text');
+      this.koreanLive = document.getElementById('korean-live');
+      this.englishLive = document.getElementById('english-live');
+
+      // Check if all required elements exist
+      const requiredElements = [
+        'connection-status', 'subscriber-count', 'subscriber-mode-btn', 'publisher-mode-btn',
+        'auth-section', 'publisher-password', 'auth-btn', 'auth-status', 'publisher-controls',
+        'start-recording', 'stop-recording', 'recording-status', 'speech-text', 
+        'korean-text', 'english-text', 'korean-live', 'english-live'
+      ];
+
+      for (const elementId of requiredElements) {
+        const element = document.getElementById(elementId);
+        if (!element) {
+          throw new Error(`Required element not found: ${elementId}`);
+        }
+      }
+
+      console.log('All UI elements initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize UI elements:', error);
+      throw error;
+    }
   }
 
   private setupEventListeners(): void {
@@ -642,7 +696,23 @@ class TranslatorApp {
 
 }
 
-// Initialize the app when the page loads
+// Initialize the app when the page loads with error handling
 document.addEventListener('DOMContentLoaded', () => {
-  new TranslatorApp();
+  try {
+    console.log('DOM loaded, initializing TranslatorApp...');
+    new TranslatorApp();
+  } catch (error) {
+    console.error('Failed to start TranslatorApp:', error);
+    // Fallback error display
+    const errorDiv = document.createElement('div');
+    errorDiv.innerHTML = `
+      <div style="color: white; padding: 20px; text-align: center; background: #0a0b1f; min-height: 100vh; font-family: Arial, sans-serif;">
+        <h1 style="color: #ef4444;">Application Error</h1>
+        <p>The application failed to start: ${error.message}</p>
+        <p>Please check the browser console for more details.</p>
+        <button onclick="location.reload()" style="padding: 10px 20px; margin-top: 20px; background: #8b5cf6; color: white; border: none; border-radius: 5px; cursor: pointer;">Refresh Page</button>
+      </div>
+    `;
+    document.body.appendChild(errorDiv);
+  }
 });
