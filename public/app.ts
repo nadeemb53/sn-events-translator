@@ -545,7 +545,7 @@ class TranslatorApp {
             }
           }, 100);
         }
-      }, 8000); // 8-second chunks for even better accuracy
+      }, 5000); // 5-second chunks for accuracy
     }
   }
   
@@ -558,7 +558,7 @@ class TranslatorApp {
       
       // Skip very short recordings (need substantial audio for good transcription)
       // Skip very small audio chunks (likely silence/noise) - but not too aggressive
-      if (audioBlob.size < 12000) {
+      if (audioBlob.size < 500) {
         console.log('🔇 Skipping small audio chunk:', audioBlob.size, 'bytes');
         return;
       }
@@ -569,7 +569,7 @@ class TranslatorApp {
       formData.append('file', audioBlob, 'audio.webm');
       formData.append('model', 'gpt-4o-transcribe');
       formData.append('temperature', '0');
-      formData.append('prompt', 'Status, Logos, Codex, Waku, Nimbus, Nomos.');
+      formData.append('prompt', 'Dont repeat the prompt Status, Logos, Codex, Waku, Nimbus, Nomos, IFT, DA Layer');
       formData.append('response_format', 'text');
       
       const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
@@ -589,10 +589,11 @@ class TranslatorApp {
       // gpt-4o-transcribe with response_format=text returns plain text, not JSON
       let transcript = (await response.text()).trim();
       
-      // Filter out prompt hallucination - detect Korean repetitions and prompt echoing
+      // Filter out prompt hallucination - detect Korean repetitions and exact prompt echoing
       const koreanRepetitions = /스테이터스.*로고스.*코덱스/g;
       const hasKoreanRepetitions = koreanRepetitions.test(transcript);
-      const isHallucination = hasKoreanRepetitions;
+      const isExactPromptEcho = transcript.includes('Status, Logos, Codex, Waku, Nimbus, Nomos, IFT, DA Layer');
+      const isHallucination = hasKoreanRepetitions || isExactPromptEcho;
       
       if (isHallucination) {
         console.log('🚫 Filtered out prompt hallucination:', transcript);
