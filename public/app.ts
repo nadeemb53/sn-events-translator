@@ -545,7 +545,7 @@ class TranslatorApp {
             }
           }, 100);
         }
-      }, 5000); // 5-second chunks for accuracy
+      }, 10000); // 10-second chunks for accuracy
     }
   }
   
@@ -569,7 +569,7 @@ class TranslatorApp {
       formData.append('file', audioBlob, 'audio.webm');
       formData.append('model', 'gpt-4o-transcribe');
       formData.append('temperature', '0');
-      formData.append('prompt', 'Dont repeat the prompt Status, Logos, Codex, Waku, Nimbus, Nomos, IFT, DA Layer');
+      formData.append('prompt', 'Status, Logos, Codex, Waku, Nimbus, Nomos, IFT, DA Layer, L2s, layer 2, eth, predeposits, gasless, transactions, community, ecosystem');
       formData.append('response_format', 'text');
       
       const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
@@ -592,7 +592,7 @@ class TranslatorApp {
       // Filter out prompt hallucination - detect Korean repetitions and exact prompt echoing
       const koreanRepetitions = /스테이터스.*로고스.*코덱스/g;
       const hasKoreanRepetitions = koreanRepetitions.test(transcript);
-      const isExactPromptEcho = transcript.includes('Status, Logos, Codex, Waku, Nimbus, Nomos, IFT, DA Layer');
+      const isExactPromptEcho = transcript.includes('Status, Logos, Codex, Waku, Nimbus, Nomos, IFT, DA Layer, L2s, layer 2, eth, predeposits, gasless, transactions, community, ecosystem');
       const isHallucination = hasKoreanRepetitions || isExactPromptEcho;
       
       if (isHallucination) {
