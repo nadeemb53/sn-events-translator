@@ -1,4 +1,5 @@
 /// <reference path="../src/types/speech.d.ts" />
+import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 
 interface TranslationMessage {
   id: string;
@@ -26,12 +27,13 @@ class TranslatorApp {
   private mediaRecorder: MediaRecorder | null = null;
   private audioChunks: Blob[] = [];
   private openaiApiKey: string | null = null;
+  private elevenlabsApiKey: string | null = null;
   private translations: TranslationMessage[] = [];
   private recordingStartTime: number = 0;
   private silenceTimeout: number | null = null;
   private lastPassword: string | null = null;
   private recognition: any = null; // SpeechRecognition interface
-  private interimTimeout: number | null = null;
+  private interimTimeout: ReturnType<typeof setTimeout> | null = null;
 
   // UI Elements
   private connectionStatus: HTMLElement;
@@ -456,9 +458,10 @@ class TranslatorApp {
       if (response.ok) {
         const data = await response.json();
         this.openaiApiKey = data.apiKey;
-        console.log('OpenAI API key fetched successfully');
+        this.elevenlabsApiKey = data.elevenlabsApiKey;
+        console.log('API keys fetched successfully');
       } else {
-        console.error('Failed to fetch OpenAI API key:', response.status);
+        console.error('Failed to fetch API keys:', response.status);
       }
     } catch (error) {
       console.error('Error fetching OpenAI API key:', error);
@@ -471,8 +474,8 @@ class TranslatorApp {
   }
 
   private async startRecording(): Promise<void> {
-    if (!this.openaiApiKey) {
-      this.recordingStatus.textContent = '❌ OpenAI API key not available';
+    if (!this.elevenlabsApiKey) {
+      this.recordingStatus.textContent = '❌ ElevenLabs API key not available';
       return;
     }
     
@@ -510,7 +513,7 @@ class TranslatorApp {
       };
       
       this.mediaRecorder.onstop = async () => {
-        await this.processAudioWithWhisper();
+        await this.processAudioWithElevenLabs();
       };
       
       this.isRecording = true;
@@ -549,55 +552,65 @@ class TranslatorApp {
     }
   }
   
-  private async processAudioWithWhisper(): Promise<void> {
-    if (!this.openaiApiKey || this.audioChunks.length === 0) return;
+  private async processAudioWithElevenLabs(): Promise<void> {
+    if (!this.elevenlabsApiKey || this.audioChunks.length === 0) return;
     
     try {
       const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
       this.audioChunks = [];
       
       // Skip very short recordings (need substantial audio for good transcription)
-      // Skip very small audio chunks (likely silence/noise) - but not too aggressive
       if (audioBlob.size < 500) {
         console.log('🔇 Skipping small audio chunk:', audioBlob.size, 'bytes');
         return;
       }
       
-      this.recordingStatus.textContent = '🔄 Transcribing...';
+      this.recordingStatus.textContent = '⚡ Transcribing with ElevenLabs...';
       
-      const formData = new FormData();
-      formData.append('file', audioBlob, 'audio.webm');
-      formData.append('model', 'gpt-4o-transcribe');
-      formData.append('temperature', '0');
-      formData.append('prompt', 'Status, Logos, Codex, Waku, Nimbus, Nomos, IFT, DA Layer, L2s, layer 2, eth, predeposits, gasless, transactions, community, ecosystem');
-      formData.append('response_format', 'text');
+      console.log('🎵 Processing audio with ElevenLabs, size:', audioBlob.size, 'bytes');
       
-      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.openaiApiKey}`,
-        },
-        body: formData,
+      // Create ElevenLabs client instance
+      const elevenlabs = new ElevenLabsClient({
+        apiKey: this.elevenlabsApiKey
+      });
+      
+      const transcription = await elevenlabs.speechToText.convert({
+        file: audioBlob,
+        modelId: "scribe_v1", // ElevenLabs speech-to-text model
+        tagAudioEvents: true, // Tag audio events like laughter, applause, etc.
+        languageCode: null, // Auto-detect language (supports Korean and English)
+        diarize: false, // Don't need speaker annotation for this use case
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`API error ${response.status}:`, errorText);
-        throw new Error(`API error: ${response.status} - ${errorText}`);
+      console.log('📝 ElevenLabs response:', transcription);
+      
+      // Extract text from the transcription response
+      let transcript = '';
+      if (transcription && typeof transcription === 'object') {
+        // ElevenLabs response structure may vary, try different possible fields
+        if ('text' in transcription) {
+          transcript = (transcription as any).text.trim();
+        } else if ('transcript' in transcription) {
+          transcript = (transcription as any).transcript.trim();
+        } else if ('result' in transcription) {
+          transcript = (transcription as any).result.trim();
+        }
+      } else if (typeof transcription === 'string') {
+        transcript = transcription.trim();
       }
-
-      // gpt-4o-transcribe with response_format=text returns plain text, not JSON
-      let transcript = (await response.text()).trim();
       
-      // Filter out prompt hallucination - detect Korean repetitions and exact prompt echoing
-      const koreanRepetitions = /스테이터스.*로고스.*코덱스/g;
-      const hasKoreanRepetitions = koreanRepetitions.test(transcript);
-      const isExactPromptEcho = transcript.includes('Status, Logos, Codex, Waku, Nimbus, Nomos, IFT, DA Layer, L2s, layer 2, eth, predeposits, gasless, transactions, community, ecosystem');
-      const isHallucination = hasKoreanRepetitions || isExactPromptEcho;
-      
-      if (isHallucination) {
-        console.log('🚫 Filtered out prompt hallucination:', transcript);
-        transcript = '';
+      // Fallback: if no transcript found, check the entire response structure
+      if (!transcript && transcription) {
+        console.log('Attempting to extract text from full response:', transcription);
+        const jsonString = JSON.stringify(transcription);
+        if (jsonString.includes('"text"')) {
+          try {
+            const parsed = JSON.parse(jsonString);
+            transcript = parsed.text || '';
+          } catch (e) {
+            console.log('Failed to parse response for text field');
+          }
+        }
       }
       
       // Also check transcript length to avoid sending very short/meaningless text
@@ -610,11 +623,11 @@ class TranslatorApp {
         this.sendTranslation(transcript);
         this.recordingStatus.textContent = '🎤 Recording...';
         
-        console.log('transcript:', transcript);
+        console.log('✅ ElevenLabs transcript:', transcript);
       }
       
     } catch (error) {
-      console.error('transcription error:', error);
+      console.error('❌ ElevenLabs transcription error:', error);
       this.recordingStatus.textContent = '❌ Transcription failed';
     }
   }

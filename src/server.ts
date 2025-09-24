@@ -16,10 +16,16 @@ const wss = new WebSocketServer({ server });
 // Configuration
 const PORT = process.env.PORT || 3000;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 const PUBLISHER_PASSWORD = process.env.PUBLISHER_PASSWORD || 'status2024';
 
 if (!OPENAI_API_KEY) {
   console.error('OPENAI_API_KEY is required');
+  process.exit(1);
+}
+
+if (!ELEVENLABS_API_KEY) {
+  console.error('ELEVENLABS_API_KEY is required');
   process.exit(1);
 }
 
@@ -66,7 +72,10 @@ app.post('/api/openai-key', (req, res) => {
     return res.status(401).json({ error: 'Invalid password' });
   }
   
-  res.json({ apiKey: OPENAI_API_KEY });
+  res.json({ 
+    apiKey: OPENAI_API_KEY,
+    elevenlabsApiKey: ELEVENLABS_API_KEY 
+  });
 });
 
 // WebSocket handling
