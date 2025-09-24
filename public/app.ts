@@ -1,6 +1,15 @@
 /// <reference path="../src/types/speech.d.ts" />
 import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 
+/**
+ * TranslatorApp - Real-time Speech Translation
+ * 
+ * Architecture:
+ * - ElevenLabs: Speech-to-text transcription (fast, multilingual)
+ * - OpenAI: Korean ↔ English translation (server-side)
+ * - WebSocket: Real-time communication between publisher and subscribers
+ */
+
 interface TranslationMessage {
   id: string;
   originalText: string;
@@ -32,8 +41,7 @@ class TranslatorApp {
   private recordingStartTime: number = 0;
   private silenceTimeout: number | null = null;
   private lastPassword: string | null = null;
-  private recognition: any = null; // SpeechRecognition interface
-  private interimTimeout: ReturnType<typeof setTimeout> | null = null;
+  private maxTextLines: number = 20; // Maximum lines to keep in display
 
   // UI Elements
   private connectionStatus: HTMLElement;
@@ -60,7 +68,6 @@ class TranslatorApp {
       this.detectSafari();
       this.initializeElements();
       this.setupEventListeners();
-      this.initializeSpeechRecognition();
       this.connectWebSocket();
     } catch (error) {
       console.error('Failed to initialize TranslatorApp:', error);
@@ -150,130 +157,6 @@ class TranslatorApp {
     });
   }
 
-  private initializeSpeechRecognition(): void {
-    // Check if HTTPS is required
-    const isSecureContext = window.isSecureContext || window.location.protocol === 'https:' || window.location.hostname === 'localhost';
-    
-    if (!isSecureContext) {
-      console.error('Speech recognition requires HTTPS in production');
-      this.recordingStatus.textContent = '❌ HTTPS required for microphone access';
-      return;
-    }
-    
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      
-      try {
-        this.recognition = new SpeechRecognitionClass();
-        
-        // Configure for teleprompter-style continuous recognition
-        this.recognition.continuous = true; // Always recording for teleprompter mode
-        this.recognition.interimResults = true;
-        this.recognition.maxAlternatives = 1;
-        
-        // Set language - start with English for better compatibility
-        this.recognition.lang = 'en-US';
-        
-        console.log('Speech recognition initialized successfully');
-      } catch (error) {
-        console.error('Failed to initialize speech recognition:', error);
-        this.recordingStatus.textContent = '❌ Failed to initialize speech recognition';
-        return;
-      }
-      
-      this.recognition.onstart = () => {
-        this.recordingStatus.textContent = '🎤 Recording... Speak now!';
-        this.recordingStatus.classList.add('recording');
-      };
-      
-      this.recognition.onresult = (event: SpeechRecognitionEvent) => {
-        let finalTranscript = '';
-        let interimTranscript = '';
-        
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript;
-          } else {
-            interimTranscript += transcript;
-          }
-        }
-        
-        // Show both final and interim results for teleprompter effect
-        const fullText = finalTranscript + interimTranscript;
-        this.speechText.textContent = fullText;
-        
-        // Send interim translations for real-time effect
-        if (interimTranscript.trim() && this.ws && this.isPublisher) {
-          this.sendInterimTranslation(interimTranscript.trim());
-        }
-        
-        // Send final translations 
-        if (finalTranscript.trim() && this.ws && this.isPublisher) {
-          this.sendTranslation(finalTranscript.trim());
-        }
-      };
-      
-      this.recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        let errorMessage = 'Recognition failed';
-        
-        switch (event.error) {
-          case 'network':
-            errorMessage = 'Network error - check connection and try again';
-            break;
-          case 'not-allowed':
-            errorMessage = 'Microphone access denied - please allow microphone permission';
-            break;
-          case 'no-speech':
-            errorMessage = 'No speech detected - please try speaking again';
-            break;
-          case 'audio-capture':
-            errorMessage = 'Audio capture failed - check microphone';
-            break;
-          case 'service-not-allowed':
-            errorMessage = 'Speech service not allowed - try HTTPS';
-            break;
-          default:
-            errorMessage = `Recognition error: ${event.error}`;
-        }
-        
-        this.recordingStatus.textContent = `❌ ${errorMessage}`;
-        this.recordingStatus.classList.remove('recording', 'processing');
-        this.isRecording = false;
-        this.updateRecordingButtons();
-      };
-      
-      this.recognition.onend = () => {
-        console.log('Speech recognition ended');
-        
-        // For teleprompter mode, always restart if we're still supposed to be recording
-        if (this.isRecording) {
-          try {
-            setTimeout(() => {
-              if (this.isRecording && this.recognition) {
-                console.log('Restarting continuous recognition...');
-                this.recognition.start();
-              }
-            }, 100); // Small delay before restarting
-          } catch (error) {
-            console.error('Failed to restart recording:', error);
-            this.isRecording = false;
-            this.updateRecordingButtons();
-            this.recordingStatus.textContent = 'Ready to record';
-            this.recordingStatus.classList.remove('recording');
-          }
-        } else {
-          this.updateRecordingButtons();
-          this.recordingStatus.textContent = 'Ready to record';
-          this.recordingStatus.classList.remove('recording');
-        }
-      };
-    } else {
-      console.error('Speech recognition not supported');
-      this.recordingStatus.textContent = '❌ Speech recognition not supported in this browser';
-    }
-  }
 
   private connectWebSocket(): void {
     // Prevent multiple concurrent connection attempts
@@ -518,7 +401,7 @@ class TranslatorApp {
       
       this.isRecording = true;
       this.recordingStartTime = Date.now();
-      this.speechText.textContent = '';
+      this.clearTextBuffers();
       
       // Record in 8-second chunks for even better context and accuracy
       this.mediaRecorder.start();
@@ -565,7 +448,7 @@ class TranslatorApp {
         return;
       }
       
-      this.recordingStatus.textContent = '⚡ Transcribing with ElevenLabs...';
+      this.recordingStatus.textContent = '⚡ Transcribing...';
       
       console.log('🎵 Processing audio with ElevenLabs, size:', audioBlob.size, 'bytes');
       
@@ -577,9 +460,9 @@ class TranslatorApp {
       const transcription = await elevenlabs.speechToText.convert({
         file: audioBlob,
         modelId: "scribe_v1", // ElevenLabs speech-to-text model
-        tagAudioEvents: true, // Tag audio events like laughter, applause, etc.
+        tagAudioEvents: false, // Tag audio events like laughter, applause, etc.
         languageCode: null, // Auto-detect language (supports Korean and English)
-        diarize: false, // Don't need speaker annotation for this use case
+        diarize: true, // Don't need speaker annotation for this use case
       });
 
       console.log('📝 ElevenLabs response:', transcription);
@@ -596,7 +479,7 @@ class TranslatorApp {
           transcript = (transcription as any).result.trim();
         }
       } else if (typeof transcription === 'string') {
-        transcript = transcription.trim();
+        transcript = String(transcription).trim();
       }
       
       // Fallback: if no transcript found, check the entire response structure
@@ -606,7 +489,7 @@ class TranslatorApp {
         if (jsonString.includes('"text"')) {
           try {
             const parsed = JSON.parse(jsonString);
-            transcript = parsed.text || '';
+            transcript = String(parsed.text || '');
           } catch (e) {
             console.log('Failed to parse response for text field');
           }
@@ -615,9 +498,8 @@ class TranslatorApp {
       
       // Also check transcript length to avoid sending very short/meaningless text
       if (transcript && transcript.length > 2 && this.ws && this.isPublisher) {
-        // Accumulate text instead of replacing
-        const currentText = this.speechText.textContent || '';
-        this.speechText.textContent = currentText ? `${currentText} ${transcript}` : transcript;
+        // Add text using rolling buffer to prevent memory issues
+        this.addTextWithBuffer(transcript);
         
         // Send translation
         this.sendTranslation(transcript);
@@ -650,6 +532,34 @@ class TranslatorApp {
     this.stopRecordingBtn.disabled = !this.isRecording;
   }
 
+  private clearTextBuffers(): void {
+    // Clear all text displays
+    this.speechText.textContent = '';
+    this.koreanText.textContent = '';
+    this.englishText.textContent = '';
+    console.log('🧹 Text buffers cleared for new recording session');
+  }
+
+  private addTextWithBuffer(newText: string): void {
+    const currentText = this.speechText.textContent || '';
+    const updatedText = currentText ? `${currentText} ${newText}` : newText;
+    
+    // Split into sentences/phrases for better line management
+    const sentences = updatedText.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    
+    // Keep only the most recent sentences (approximate line management)
+    if (sentences.length > this.maxTextLines) {
+      const recentSentences = sentences.slice(-this.maxTextLines);
+      this.speechText.textContent = recentSentences.join('. ') + '.';
+      console.log(`📝 Text buffer trimmed to ${this.maxTextLines} sentences`);
+    } else {
+      this.speechText.textContent = updatedText;
+    }
+    
+    // Auto-scroll to bottom to show latest content
+    this.speechText.scrollTop = this.speechText.scrollHeight;
+  }
+
   private sendTranslation(text: string): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify({
@@ -660,19 +570,6 @@ class TranslatorApp {
     }
   }
 
-  private sendInterimTranslation(text: string): void {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      // Throttle interim translations to avoid spam
-      clearTimeout(this.interimTimeout);
-      this.interimTimeout = setTimeout(() => {
-        this.ws!.send(JSON.stringify({
-          type: 'translation',
-          data: text,
-          isFinal: false
-        }));
-      }, 300); // 300ms throttle
-    }
-  }
 
   private addTranslation(translation: TranslationMessage): void {
     // Show live indicators
@@ -686,11 +583,13 @@ class TranslatorApp {
     this.appendToBlob(translation.originalText, translation.sourceLanguage, !translation.isFinal);
     this.appendToBlob(translation.translatedText, translation.targetLanguage, !translation.isFinal);
     
-    // Store translation for potential future use
+    // Store translation for potential future use (limit to recent translations)
     if (translation.isFinal) {
       this.translations.unshift(translation);
-      if (this.translations.length > 50) {
-        this.translations = this.translations.slice(0, 50);
+      // Keep only recent translations to prevent memory bloat
+      if (this.translations.length > 20) {
+        this.translations = this.translations.slice(0, 20);
+        console.log('🗂️ Translation history trimmed to 20 recent items');
       }
     }
   }
@@ -732,15 +631,26 @@ class TranslatorApp {
       interimSpan.style.padding = '2px 4px';
       interimSpan.style.borderRadius = '4px';
     } else {
-      // For final results, remove interim and add final text
+      // For final results, remove interim and add final text with buffer management
       const interimSpan = targetElement.querySelector('.interim-text');
       if (interimSpan) {
         interimSpan.remove();
       }
       
-      const finalSpan = document.createElement('span');
-      finalSpan.textContent = text + ' ';
-      targetElement.appendChild(finalSpan);
+      // Add text and manage buffer size
+      const currentText = targetElement.textContent || '';
+      const updatedText = currentText ? `${currentText} ${text}` : text;
+      
+      // Split into sentences and manage line count
+      const sentences = updatedText.split(/[.!?]+/).filter(s => s.trim().length > 0);
+      
+      if (sentences.length > this.maxTextLines) {
+        // Keep only recent sentences
+        const recentSentences = sentences.slice(-this.maxTextLines);
+        targetElement.textContent = recentSentences.join('. ') + '.';
+      } else {
+        targetElement.textContent = updatedText;
+      }
     }
     
     // Auto-scroll to bottom

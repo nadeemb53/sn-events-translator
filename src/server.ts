@@ -20,12 +20,12 @@ const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 const PUBLISHER_PASSWORD = process.env.PUBLISHER_PASSWORD || 'status2024';
 
 if (!OPENAI_API_KEY) {
-  console.error('OPENAI_API_KEY is required');
+  console.error('OPENAI_API_KEY is required for translation');
   process.exit(1);
 }
 
 if (!ELEVENLABS_API_KEY) {
-  console.error('ELEVENLABS_API_KEY is required');
+  console.error('ELEVENLABS_API_KEY is required for transcription');
   process.exit(1);
 }
 
